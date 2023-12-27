@@ -6,6 +6,7 @@ import de.devlodge.hedera.account.export.entities.TransactionEntity;
 import de.devlodge.hedera.account.export.repositories.TransactionRepository;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -15,15 +16,17 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional
 public class MainRunner implements ApplicationRunner {
     private final TransactionRepository transactionRepository;
+    private final String accountId;
 
     @Autowired
-    public MainRunner(final TransactionRepository transactionRepository) {
+    public MainRunner(final TransactionRepository transactionRepository,
+            @Value("${hedera.export.account}") final String accountId) {
         this.transactionRepository = transactionRepository;
+        this.accountId = accountId;
     }
 
     @Override
     public void run(final ApplicationArguments args) throws Exception {
-        final String accountId = "0.0.4325052";
         final var results = new HederaClient().request(accountId);
 
         final var factory = new BalanceTransactionFactory(accountId);
@@ -33,8 +36,8 @@ public class MainRunner implements ApplicationRunner {
         final var transactionEntityFactory = new TransactionEntityFactory(coinCarpClient);
 
         List<TransactionEntity> entities = transactionEntityFactory.create(balanceTransactions);
-        entities.forEach(System.out::println);
         transactionRepository.saveAll(entities);
+        entities.forEach(System.out::println);
 
     }
 }

@@ -4,6 +4,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.Id;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -30,7 +31,7 @@ public class TransactionEntity {
                         "," + hbarAmount +
                         "," + eurAmount +
                         "," + isStakingReward +
-                        "," + note +
+                        "," + Objects.requireNonNullElse(note, "") +
                         "," + hbarBalanceAfterTransaction +
                         "," + eurBalanceAfterTransaction;
     }
