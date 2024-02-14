@@ -38,6 +38,5 @@ public class MainRunner implements ApplicationRunner {
         List<TransactionEntity> entities = transactionEntityFactory.create(balanceTransactions);
         transactionRepository.saveAll(entities);
         entities.forEach(System.out::println);
-
     }
 }
