@@ -13,7 +13,10 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.function.UnaryOperator;
+import java.util.stream.Collectors;
 
 public class HederaClient {
 
@@ -63,7 +66,7 @@ public class HederaClient {
         return transactions.asList()
                 .stream()
                 .map(transaction -> {
-                    final List<HederaTransfer> hederaTransfers = Optional.ofNullable(
+                    final List<HederaTransfer> hederaTransfers = new ArrayList<>(Optional.ofNullable(
                                     transaction.getAsJsonObject().get("transfers"))
                             .map(JsonElement::getAsJsonArray)
                             .orElseGet(JsonArray::new)
@@ -73,7 +76,7 @@ public class HederaClient {
                                     transfer.getAsJsonObject().get("account").getAsString(),
                                     transfer.getAsJsonObject().get("amount").getAsLong()
                             ))
-                            .toList();
+                            .toList());
                     final List<HederaTransfer> stakingRewardHederaTransfers = Optional.ofNullable(
                                     transaction.getAsJsonObject().get("staking_reward_transfers"))
                             .map(JsonElement::getAsJsonArray)
@@ -85,6 +88,17 @@ public class HederaClient {
                                     transfer.getAsJsonObject().get("amount").getAsLong()
                             ))
                             .toList();
+
+                    hederaTransfers.replaceAll(hederaTransfer -> {
+                        long amount = hederaTransfer.amount();
+                        final long stackingAmount = stakingRewardHederaTransfers.stream()
+                                .filter(stackingTransfer -> Objects.equals(hederaTransfer.account(),
+                                        stackingTransfer.account()))
+                                .map(stackingTransfer -> stackingTransfer.amount())
+                                .reduce(0L, Long::sum);
+                        return new HederaTransfer(hederaTransfer.account(), amount - stackingAmount);
+                    });
+
                     return new HederaTransaction(
                             transaction.getAsJsonObject().get("transaction_id").getAsString(),
                             transaction.getAsJsonObject().get("consensus_timestamp").getAsString(),
