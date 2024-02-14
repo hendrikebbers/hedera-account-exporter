@@ -48,7 +48,7 @@ public class TransactionsController {
         BigDecimal hbar = new BigDecimal(hbarAmount).divide(BigDecimal.valueOf(100000000));
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(2);
-        df.setMinimumFractionDigits(0);
+        df.setMinimumFractionDigits(2);
         df.setGroupingUsed(false);
         return df.format(hbar) + " ℏ";
     }
@@ -57,7 +57,7 @@ public class TransactionsController {
         BigDecimal bigDecimal = new BigDecimal(eurAmount);
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(2);
-        df.setMinimumFractionDigits(0);
+        df.setMinimumFractionDigits(2);
         df.setGroupingUsed(false);
         return df.format(bigDecimal) + " €";
     }
