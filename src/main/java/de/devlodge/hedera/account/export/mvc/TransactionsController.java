@@ -45,7 +45,7 @@ public class TransactionsController {
     }
 
     private static String getHBarFormatted(long hbarAmount) {
-        BigDecimal hbar = new BigDecimal(hbarAmount).divide(BigDecimal.valueOf(100000000));
+        BigDecimal hbar = new BigDecimal(hbarAmount).divide(BigDecimal.valueOf(100_000_000));
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(2);
         df.setMinimumFractionDigits(2);
@@ -63,7 +63,7 @@ public class TransactionsController {
     }
 
     private static String formatTimestamp(Instant timestamp) {
-        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy")
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy hh:mm:ss")
                 .withZone(ZoneId.systemDefault());
         return formatter.format(timestamp);
     }
