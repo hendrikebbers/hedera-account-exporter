@@ -9,9 +9,15 @@
     <h2>Kontoverlauf</h2>
     <canvas id="hbarChart"></canvas>
     <canvas id="eurChart"></canvas>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.1.0/Chart.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.13.0/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
     <script>
+      var numberFormatOption = {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      };
+
       var hbarChartConfig = {
         type: 'line',
         data: {
@@ -23,9 +29,16 @@
         },
         options: {
           scales: {
-            xAxes: [{
+            x: {
               type: 'time'
-            }],
+            },
+            y: {
+              ticks: {
+                callback: function(value, index, ticks) {
+                  return new Intl.NumberFormat('de-DE', numberFormatOption).format(value,) + ' ℏ';
+                }
+              }
+            }
           },
         }
       };
@@ -41,9 +54,16 @@
         },
         options: {
           scales: {
-            xAxes: [{
+            x: {
               type: 'time'
-            }],
+            },
+            y: {
+              ticks: {
+                callback: function(value, index, ticks) {
+                  return new Intl.NumberFormat('de-DE', numberFormatOption).format(value,) + ' €';
+                }
+              }
+            }
           },
         }
       };

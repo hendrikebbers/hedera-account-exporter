@@ -56,7 +56,7 @@ public class ChartController {
         //moment('2016-03-12 13:00:00')
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss")
                 .withZone(ZoneId.systemDefault());
-        return "moment('" + formatter.format(timestamp) + "')";
+        return "'" + formatter.format(timestamp) + "'";
     }
 
     private static double getHBarFormatted(long hbarAmount) {
