@@ -37,7 +37,7 @@ public class MainRunner implements ApplicationRunner {
 
         List<TransactionEntity> entities = transactionEntityFactory.create(balanceTransactions);
         transactionRepository.saveAll(entities);
+        System.out.println("id, hederaTransactionId, timestamp, hbarAmount, eurAmount, isStakingReward, note, hbarBalanceAfterTransaction, eurBalanceAfterTransaction");
         entities.forEach(System.out::println);
-
     }
 }
