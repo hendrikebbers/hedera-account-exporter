@@ -1,19 +1,20 @@
 package de.devlodge.hedera.account.export;
 
-import de.devlodge.hedera.account.export.clients.CoinCarpClient;
-import de.devlodge.hedera.account.export.clients.CoinCarpCodes;
+import de.devlodge.hedera.account.export.clients.CoinBaseClient;
 import de.devlodge.hedera.account.export.entities.TransactionEntity;
 import de.devlodge.hedera.account.export.models.BalanceTransaction;
+import de.devlodge.hedera.account.export.utils.Currency;
+import de.devlodge.hedera.account.export.utils.ExchangePair;
 import java.util.Comparator;
 import java.util.List;
 
 public class TransactionEntityFactory {
     private final Account account;
-    private final CoinCarpClient coinCarpClient;
+    private final CoinBaseClient coinBaseClient;
 
-    public TransactionEntityFactory(final CoinCarpClient coinCarpClient) {
+    public TransactionEntityFactory(final CoinBaseClient coinBaseClient) {
         account = new Account();
-        this.coinCarpClient = coinCarpClient;
+        this.coinBaseClient = coinBaseClient;
     }
 
     public List<TransactionEntity> create(final List<BalanceTransaction> balanceTransaction) {
@@ -25,15 +26,13 @@ public class TransactionEntityFactory {
                     try {
                         account.executeTransaction(transaction);
 
-                        final var exchangeRateHbar = coinCarpClient.getExchangeRate(CoinCarpCodes.HBAR,
-                                transaction.timestamp());
-                        final var exchangeRateEur = coinCarpClient.getExchangeRate(CoinCarpCodes.EUR,
+                        final var exchangeRateEur = coinBaseClient.getExchangeRate(new ExchangePair(Currency.HBAR, Currency.EUR),
                                 transaction.timestamp());
 
-                        double eurAmount = (((double) transaction.hbarAmount() / 100_000_000) * exchangeRateHbar)
-                                / exchangeRateEur;
-                        double eurBalance = (((double) account.getHbarBalance() / 100_000_000) * exchangeRateHbar)
-                                / exchangeRateEur;
+                        double eurAmount = (((double) transaction.hbarAmount() / 100_000_000))
+                                * exchangeRateEur;
+                        double eurBalance = (((double) account.getHbarBalance() / 100_000_000))
+                                * exchangeRateEur;
 
                         res.setHederaTransactionId(transaction.hederaTransactionId());
                         res.setTimestamp(transaction.timestamp());

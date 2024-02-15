@@ -1,6 +1,6 @@
 package de.devlodge.hedera.account.export;
 
-import de.devlodge.hedera.account.export.clients.CoinCarpClient;
+import de.devlodge.hedera.account.export.clients.CoinBaseClient;
 import de.devlodge.hedera.account.export.clients.HederaClient;
 import de.devlodge.hedera.account.export.entities.TransactionEntity;
 import de.devlodge.hedera.account.export.repositories.TransactionRepository;
@@ -32,8 +32,8 @@ public class MainRunner implements ApplicationRunner {
         final var factory = new BalanceTransactionFactory(accountId);
         final var balanceTransactions = factory.create(results);
 
-        final var coinCarpClient = new CoinCarpClient();
-        final var transactionEntityFactory = new TransactionEntityFactory(coinCarpClient);
+        final var coinBaseClient = new CoinBaseClient();
+        final var transactionEntityFactory = new TransactionEntityFactory(coinBaseClient);
 
         List<TransactionEntity> entities = transactionEntityFactory.create(balanceTransactions);
         transactionRepository.saveAll(entities);

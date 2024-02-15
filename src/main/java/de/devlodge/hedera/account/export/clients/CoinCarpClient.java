@@ -10,6 +10,7 @@ import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
+@Deprecated(forRemoval = true)
 public class CoinCarpClient {
 
     private final static String BASE_URL = "https://sapi.coincarp.com/api/v1/his/coin/histicker?code=%s&begintime=%s&endtime=%s&lang=en-US";
