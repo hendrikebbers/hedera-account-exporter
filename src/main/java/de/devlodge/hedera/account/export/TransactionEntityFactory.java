@@ -1,12 +1,13 @@
 package de.devlodge.hedera.account.export;
 
 import de.devlodge.hedera.account.export.clients.CoinBaseClient;
-import de.devlodge.hedera.account.export.entities.TransactionEntity;
 import de.devlodge.hedera.account.export.models.BalanceTransaction;
+import de.devlodge.hedera.account.export.models.Transaction;
 import de.devlodge.hedera.account.export.utils.Currency;
 import de.devlodge.hedera.account.export.utils.ExchangePair;
 import java.util.Comparator;
 import java.util.List;
+import java.util.UUID;
 
 public class TransactionEntityFactory {
     private final Account account;
@@ -17,12 +18,11 @@ public class TransactionEntityFactory {
         this.coinBaseClient = coinBaseClient;
     }
 
-    public List<TransactionEntity> create(final List<BalanceTransaction> balanceTransaction) {
+    public List<Transaction> create(final List<BalanceTransaction> balanceTransaction) {
         return balanceTransaction
                 .stream()
                 .sorted(Comparator.comparing(BalanceTransaction::timestamp))
                 .map(transaction -> {
-                    final var res = new TransactionEntity();
                     try {
                         account.executeTransaction(transaction);
 
@@ -30,22 +30,17 @@ public class TransactionEntityFactory {
                                 transaction.timestamp());
 
                         double eurAmount = (((double) transaction.hbarAmount() / 100_000_000))
-                                * exchangeRateEur;
+                                * exchangeRateEur.doubleValue();
                         double eurBalance = (((double) account.getHbarBalance() / 100_000_000))
-                                * exchangeRateEur;
+                                * exchangeRateEur.doubleValue();
 
-                        res.setHederaTransactionId(transaction.hederaTransactionId());
-                        res.setTimestamp(transaction.timestamp());
-                        res.setHbarAmount(transaction.hbarAmount());
-                        res.setEurAmount(eurAmount);
-                        res.setStakingReward(transaction.isStakingReward());
-                        res.setHbarBalanceAfterTransaction(account.getHbarBalance());
-                        res.setEurBalanceAfterTransaction(eurBalance);
+                        return new Transaction(UUID.randomUUID(), transaction.hederaTransactionId(), transaction.timestamp(),
+                                transaction.hbarAmount(), eurAmount, transaction.isStakingReward(), "",
+                                account.getHbarBalance(), eurBalance);
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);
                     }
-                    return res;
                 })
                 .toList();
     }
