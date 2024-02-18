@@ -1,4 +1,4 @@
-package de.devlodge.hedera.account.export;
+package de.devlodge.hedera.account.export.models;
 
 import de.devlodge.hedera.account.export.models.BalanceTransaction;
 

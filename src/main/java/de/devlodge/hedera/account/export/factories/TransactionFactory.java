@@ -1,21 +1,32 @@
-package de.devlodge.hedera.account.export;
+package de.devlodge.hedera.account.export.factories;
 
-import de.devlodge.hedera.account.export.clients.CoinBaseClient;
+import de.devlodge.hedera.account.export.models.Account;
+import de.devlodge.hedera.account.export.clients.ExchangeClient;
 import de.devlodge.hedera.account.export.models.BalanceTransaction;
 import de.devlodge.hedera.account.export.models.Transaction;
+import de.devlodge.hedera.account.export.service.NoteService;
 import de.devlodge.hedera.account.export.utils.Currency;
 import de.devlodge.hedera.account.export.utils.ExchangePair;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-public class TransactionEntityFactory {
+@Service
+public class TransactionFactory {
     private final Account account;
-    private final CoinBaseClient coinBaseClient;
+    private final ExchangeClient exchangeClient;
 
-    public TransactionEntityFactory(final CoinBaseClient coinBaseClient) {
+    private final NoteService noteService;
+
+    @Autowired
+    public TransactionFactory(final ExchangeClient exchangeClient, NoteService noteService) {
         account = new Account();
-        this.coinBaseClient = coinBaseClient;
+
+        this.noteService = Objects.requireNonNull(noteService);
+        this.exchangeClient = Objects.requireNonNull(exchangeClient);
     }
 
     public List<Transaction> create(final List<BalanceTransaction> balanceTransaction) {
@@ -24,9 +35,10 @@ public class TransactionEntityFactory {
                 .sorted(Comparator.comparing(BalanceTransaction::timestamp))
                 .map(transaction -> {
                     try {
+                        final String hashOfTransaction = transaction.hederaTransactionId();
                         account.executeTransaction(transaction);
 
-                        final var exchangeRateEur = coinBaseClient.getExchangeRate(new ExchangePair(Currency.HBAR, Currency.EUR),
+                        final var exchangeRateEur = exchangeClient.getExchangeRate(new ExchangePair(Currency.HBAR, Currency.EUR),
                                 transaction.timestamp());
 
                         double eurAmount = (((double) transaction.hbarAmount() / 100_000_000))
@@ -35,7 +47,7 @@ public class TransactionEntityFactory {
                                 * exchangeRateEur.doubleValue();
 
                         return new Transaction(UUID.randomUUID(), transaction.hederaTransactionId(), transaction.timestamp(),
-                                transaction.hbarAmount(), eurAmount, transaction.isStakingReward(), "",
+                                transaction.hbarAmount(), eurAmount, transaction.isStakingReward(), noteService.getNote(hashOfTransaction).orElse(""),
                                 account.getHbarBalance(), eurBalance);
 
                     } catch (Exception e) {
