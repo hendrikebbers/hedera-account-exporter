@@ -3,20 +3,16 @@ package de.devlodge.hedera.account.export.clients;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import de.devlodge.hedera.account.export.models.HederaTransaction;
 import de.devlodge.hedera.account.export.models.HederaTransfer;
+import de.devlodge.hedera.account.export.utils.HttpUtils;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.UnaryOperator;
-import java.util.stream.Collectors;
 
 public class HederaClient {
 
@@ -29,24 +25,15 @@ public class HederaClient {
         client = HttpClient.newHttpClient();
     }
 
-    private List<HederaTransaction> request(final URI url) throws IOException, InterruptedException {
-        final HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .GET()
-                .uri(url)
-                .header("accept", "application/json");
-
-        final HttpResponse<String> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-
-        final JsonObject jsonObject = JsonParser.parseString(response.body())
-                .getAsJsonObject();
-
+    private List<HederaTransaction> request(final URI uri) throws IOException, InterruptedException {
+        final JsonObject jsonObject = HttpUtils.getJsonElementForGetRequest(client, uri).getAsJsonObject();
         final JsonArray transactions = jsonObject
                 .get("transactions")
                 .getAsJsonArray();
-        List<HederaTransaction> hederaTransactions = new ArrayList<>(getHederaTransactions(transactions));
+        final List<HederaTransaction> hederaTransactions = new ArrayList<>(getHederaTransactions(transactions));
 
         if(jsonObject.has("links")  && !jsonObject.get("links").isJsonNull()) {
-            var links = jsonObject.get("links").getAsJsonObject();
+            final var links = jsonObject.get("links").getAsJsonObject();
             if(links.has("next") && !links.get("next").isJsonNull()) {
                 final String next = links.get("next").getAsString();
                 if(next != null && !next.isEmpty()) {

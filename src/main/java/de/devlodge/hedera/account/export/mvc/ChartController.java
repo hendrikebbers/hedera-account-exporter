@@ -1,17 +1,14 @@
 package de.devlodge.hedera.account.export.mvc;
 
 import com.google.gson.JsonArray;
-import de.devlodge.hedera.account.export.mvc.TransactionsController.TransactionModel;
-import de.devlodge.hedera.account.export.repositories.TransactionRepository;
+import de.devlodge.hedera.account.export.service.TransactionService;
 import java.math.BigDecimal;
-import java.text.DecimalFormat;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,21 +18,21 @@ import org.springframework.web.bind.annotation.RequestMethod;
 @Controller
 public class ChartController {
 
-    private final TransactionRepository transactionRepository;
+    private final TransactionService transactionService;
 
     @Autowired
-    public ChartController(TransactionRepository transactionRepository) {
-        this.transactionRepository = transactionRepository;
+    public ChartController(final TransactionService transactionService) {
+        this.transactionService = Objects.requireNonNull(transactionService);
     }
 
     @RequestMapping(value = "/chart", method = RequestMethod.GET)
     public String hello(final Model model) {
         Objects.requireNonNull(model);
         final List<Value> values = new ArrayList<>();
-        transactionRepository.findAll().forEach(t -> values.add(new Value(
-                formatTimestamp(t.getTimestamp()),
-                getHBarFormatted(t.getHbarBalanceAfterTransaction()),
-                t.getEurBalanceAfterTransaction()
+        transactionService.getTransactions().forEach(t -> values.add(new Value(
+                formatTimestamp(t.timestamp()),
+                getHBarFormatted(t.hbarBalanceAfterTransaction()),
+                t.eurBalanceAfterTransaction()
         )));
         values.sort((v1, v2) -> v1.timestamp.compareTo(v2.timestamp));
         JsonArray xValues = new JsonArray();

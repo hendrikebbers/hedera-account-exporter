@@ -1,12 +1,9 @@
 package de.devlodge.hedera.account.export.clients;
 
-import com.google.gson.JsonParser;
 import de.devlodge.hedera.account.export.models.CoinCarpExchangeRate;
+import de.devlodge.hedera.account.export.utils.HttpUtils;
 import java.io.IOException;
-import java.net.URI;
 import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 
@@ -26,14 +23,7 @@ public class CoinCarpClient {
         final var start = instant.minus(1, ChronoUnit.DAYS);
         final String url = BASE_URL.formatted(code.getCode(), start.getEpochSecond(), instant.getEpochSecond());
 
-        final HttpRequest.Builder builder = HttpRequest.newBuilder()
-                .GET()
-                .uri(URI.create(url))
-                .header("accept", "application/json");
-
-        final HttpResponse<String> response = client.send(builder.build(), HttpResponse.BodyHandlers.ofString());
-
-        final var jsonArray = JsonParser.parseString(response.body())
+        final var jsonArray = HttpUtils.getJsonElementForGetRequest(client, url)
                 .getAsJsonObject()
                 .get("data")
                 .getAsJsonArray()

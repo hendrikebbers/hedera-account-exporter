@@ -1,6 +1,6 @@
 package de.devlodge.hedera.account.export.mvc;
 
-import de.devlodge.hedera.account.export.repositories.TransactionRepository;
+import de.devlodge.hedera.account.export.service.TransactionService;
 import java.math.BigDecimal;
 import java.text.DecimalFormat;
 import java.time.Instant;
@@ -19,26 +19,26 @@ import org.springframework.web.bind.annotation.RequestMethod;
 @Controller
 public class TransactionsController {
 
-    private final TransactionRepository transactionRepository;
+    private final TransactionService transactionService;
 
     @Autowired
-    public TransactionsController(TransactionRepository transactionRepository) {
-        this.transactionRepository = transactionRepository;
+    public TransactionsController(final TransactionService transactionService) {
+        this.transactionService = Objects.requireNonNull(transactionService);
     }
 
     @RequestMapping(value = "/transactions", method = RequestMethod.GET)
     public String hello(final Model model) {
         Objects.requireNonNull(model);
         final List<TransactionModel> transactions = new ArrayList<>();
-        transactionRepository.findAll().forEach(t -> transactions.add(new TransactionModel(
-                t.getHederaTransactionId(),
-                formatTransactionLink(t.getHederaTransactionId()),
-                formatTimestamp(t.getTimestamp()),
-                getHBarFormatted(t.getHbarAmount()),
-                getEurFormatted(t.getEurAmount()),
-                Optional.ofNullable(t.getNote()).orElse(""),
-                getHBarFormatted(t.getHbarBalanceAfterTransaction()),
-                getEurFormatted(t.getEurBalanceAfterTransaction())
+        transactionService.getTransactions().forEach(t -> transactions.add(new TransactionModel(
+                t.hederaTransactionId(),
+                formatTransactionLink(t.hederaTransactionId()),
+                formatTimestamp(t.timestamp()),
+                getHBarFormatted(t.hbarAmount()),
+                getEurFormatted(t.eurAmount()),
+                Optional.ofNullable(t.note()).orElse(""),
+                getHBarFormatted(t.hbarBalanceAfterTransaction()),
+                getEurFormatted(t.eurBalanceAfterTransaction())
         )));
         model.addAttribute("transactions", transactions);
         return "transactions";
