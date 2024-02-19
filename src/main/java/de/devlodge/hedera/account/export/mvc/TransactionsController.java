@@ -10,7 +10,10 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -80,6 +83,7 @@ public class TransactionsController {
                 return "";
             }
         });
+        final Map<String, Double> fifo = calculateFifo(transactionService.getTransactions());
         return new TransactionModel(
                 transaction.id().toString(),
                 transaction.hederaTransactionId(),
@@ -90,7 +94,8 @@ public class TransactionsController {
                 getEurFormatted(cumulativeCostBaseInEur + transaction.eurAmount()),
                 note,
                 getHBarFormatted(transaction.hbarBalanceAfterTransaction()),
-                getEurFormatted(transaction.eurBalanceAfterTransaction())
+                getEurFormatted(transaction.eurBalanceAfterTransaction()),
+                getEurFormatted(fifo.get(transaction.id().toString()))
         );
     }
 
@@ -122,5 +127,38 @@ public class TransactionsController {
         return "https://hashscan.io/mainnet/transaction/" + hederaTransactionId;
     }
 
-    public record TransactionModel(String id, String hederaTransactionId, String hederaTransactionLink, String timestamp, String hbarAmount, String eurAmount, String cumulativeCostInEur, String note, String hbarBalanceAfterTransaction, String eurBalanceAfterTransaction){}
+    private Map<String, Double> calculateFifo(List<Transaction> transactions) {
+            final Map<String, Double> fifoMap = new HashMap<>();
+            transactions.forEach(t -> {
+                if (t.eurAmount() > 0) {
+                    fifoMap.put(t.id().toString(), t.eurAmount());
+                } else {
+                    fifoMap.put(t.id().toString(), 0.0);
+                }
+            });
+
+            for(int i = 0; i < transactions.size(); i++) {
+                final Transaction transaction = transactions.get(i);
+                final double amount = transaction.eurAmount();
+                if(amount < 0) {
+                    double remainingAmount = -amount;
+                    for(int j = 0; j < i; j++) {
+                        final Transaction transactionForFifo = transactions.get(j);
+                        final double availableFifo = fifoMap.get(transactionForFifo.id().toString());
+                        if(availableFifo > 0) {
+                            final double fifo = Math.min(availableFifo, remainingAmount);
+                            fifoMap.put(transactionForFifo.id().toString(), availableFifo - fifo);
+                            remainingAmount =remainingAmount - fifo;
+                            if(remainingAmount == 0) {
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            return Collections.unmodifiableMap(fifoMap);
+    }
+
+    public record TransactionModel(String id, String hederaTransactionId, String hederaTransactionLink, String timestamp, String hbarAmount, String eurAmount, String cumulativeCostInEur, String note, String hbarBalanceAfterTransaction, String eurBalanceAfterTransaction, String fifoInEur){}
+
 }
