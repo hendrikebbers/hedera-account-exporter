@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-<header>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
-</header>
+<#include "common/head.ftlh">
 <body>
 <main class="container">
+    <#include "common/menu.ftlh">
   <section>
     <h2>Transaktionsübersicht</h2>
     <table class="table table-hover">
@@ -35,5 +34,6 @@
     </table>
   </section>
 </main>
+<#include "common/bodyEnd.ftlh">
 </body>
 </html>

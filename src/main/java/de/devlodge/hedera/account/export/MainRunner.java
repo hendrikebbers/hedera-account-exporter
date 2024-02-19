@@ -57,5 +57,19 @@ public class MainRunner implements ApplicationRunner {
             final double eurAmount = hbarAmount  * rate.doubleValue();
             System.out.println("The current value of your HBAR is: " + String.format( "%.2f", eurAmount)  + " €");
         }
+
+        if(!transactions.isEmpty()) {
+            final double stackingHbarAmount = (double) transactions.stream()
+                    .filter(transaction -> transaction.isStakingReward())
+                    .mapToLong(Transaction::hbarAmount)
+                    .sum() / 100_000_000;
+            System.out.println("Sum of stacked HBAR is: " + String.format( "%.2f", stackingHbarAmount)  + " ℏ");
+
+
+            final ExchangePair exchangePair = new ExchangePair(Currency.HBAR, Currency.EUR);
+            final BigDecimal rate = exchangeClient.getExchangeRate(exchangePair, Instant.now());
+            final double eurAmount = stackingHbarAmount  * rate.doubleValue();
+            System.out.println("The current value of your stacked HBAR is: " + String.format( "%.2f", eurAmount)  + " €");
+        }
     }
 }
