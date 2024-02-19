@@ -1,5 +1,8 @@
 package de.devlodge.hedera.account.export.service;
 
+import de.devlodge.hedera.account.export.models.Transaction;
+import java.io.File;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -9,7 +12,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -19,21 +21,29 @@ public class NoteService {
 
     private final Properties notes;
 
-    public NoteService(@Value("${noteFile}") final String noteFile) {
+    public NoteService() {
+        String noteFile = System.getProperty("user.home") + File.separator + ".crypto-export" + File.separator + "notes.properties";
         this.path = Path.of(noteFile);
         this.notes = new Properties();
+
         load();
     }
 
-    public void addNote(final String hash, final String note) {
-        Objects.requireNonNull(hash, "hash must not be null");
+    public void addNote(final Transaction transaction, final String note) {
+       final String hash = hash(transaction);
         notes.put(hash, note);
         save();
     }
 
-    public Optional<String> getNote(final String hash) {
-        Objects.requireNonNull(hash, "hash must not be null");
+    public Optional<String> getNote(final Transaction transaction) {
+        Objects.requireNonNull(transaction, "transaction must not be null");
+        final String hash = hash(transaction);
         return Optional.ofNullable(notes.getProperty(hash));
+    }
+
+    private String hash(final Transaction transaction) {
+        Objects.requireNonNull(transaction, "transaction must not be null");
+        return transaction.hederaTransactionId() + "-" + transaction.timestamp() + "-" + transaction.hbarAmount();
     }
 
     private void load() {
@@ -49,6 +59,12 @@ public class NoteService {
     private void save() {
         final Instant now = Instant.now();
         final String comment = "Created " + now;
+        try {
+            Files.createDirectories(path.getParent());
+        } catch (IOException e) {
+            throw new RuntimeException("Can not create dir", e);
+        }
+
         try(final OutputStream outputStream = Files.newOutputStream(path, java.nio.file.StandardOpenOption.CREATE, StandardOpenOption.WRITE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
             notes.store(outputStream, comment);
         } catch (Exception e) {

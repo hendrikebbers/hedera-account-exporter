@@ -5,6 +5,8 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
 import org.springframework.stereotype.Service;
 
@@ -31,5 +33,12 @@ public class TransactionService {
 
     private void sort() {
         transactions.sort(Comparator.comparing(Transaction::timestamp));
+    }
+
+    public Optional<Transaction> getById(String id) {
+        return getById(UUID.fromString(id));
+    }
+    public Optional<Transaction> getById(UUID id) {
+        return transactions.stream().filter(t -> t.id().equals(id)).findFirst();
     }
 }
