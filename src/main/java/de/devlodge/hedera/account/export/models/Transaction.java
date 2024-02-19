@@ -4,4 +4,4 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record Transaction(UUID id, String hederaTransactionId, Instant timestamp, long hbarAmount,
-                          double eurAmount, boolean isStakingReward, String note, long hbarBalanceAfterTransaction, double eurBalanceAfterTransaction){}
+                          double eurAmount, boolean isStakingReward, long hbarBalanceAfterTransaction, double eurBalanceAfterTransaction){}

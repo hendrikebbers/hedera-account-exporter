@@ -47,7 +47,7 @@ public class TransactionFactory {
                                 * exchangeRateEur.doubleValue();
 
                         return new Transaction(UUID.randomUUID(), transaction.hederaTransactionId(), transaction.timestamp(),
-                                transaction.hbarAmount(), eurAmount, transaction.isStakingReward(), noteService.getNote(hashOfTransaction).orElse(""),
+                                transaction.hbarAmount(), eurAmount, transaction.isStakingReward(),
                                 account.getHbarBalance(), eurBalance);
 
                     } catch (Exception e) {
