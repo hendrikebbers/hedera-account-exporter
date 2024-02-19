@@ -1,5 +1,6 @@
-package de.devlodge.hedera.account.export;
+package de.devlodge.hedera.account.export.factories;
 
+import de.devlodge.hedera.account.export.clients.HederaClient;
 import de.devlodge.hedera.account.export.models.BalanceTransaction;
 import de.devlodge.hedera.account.export.models.HederaTransaction;
 import de.devlodge.hedera.account.export.models.HederaTransfer;
@@ -7,20 +8,22 @@ import de.devlodge.hedera.account.export.utils.HederaUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
-public class BalanceTransactionFactory {
+@Service
+public class HederaBalanceTransactionFactory {
 
     private final String accountId;
 
-    public BalanceTransactionFactory(final String accountId) {
+    public HederaBalanceTransactionFactory( @Value("${hedera.export.account}") final String accountId) {
         this.accountId = accountId;
     }
 
-    public List<BalanceTransaction> create(final List<HederaTransaction> hederaTransaction) {
+    public List<BalanceTransaction> create() throws Exception {
+        final var hederaTransaction = new HederaClient().request(accountId);
         final List<BalanceTransaction> result = new ArrayList<>();
-
         hederaTransaction.forEach(t -> result.addAll(create(t)));
-
         return Collections.unmodifiableList(result);
     }
 
