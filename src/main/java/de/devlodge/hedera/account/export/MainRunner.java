@@ -27,6 +27,8 @@ public class MainRunner implements ApplicationRunner {
 
     @Override
     public void run(final ApplicationArguments args) throws Exception {
+
+
         final var results = new HederaClient().request(accountId);
 
         final var factory = new BalanceTransactionFactory(accountId);
