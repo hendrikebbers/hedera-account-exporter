@@ -11,6 +11,7 @@
         <th>Datum</th>
         <th class="text-right">Betrag (HBAR)</th>
         <th class="text-right">Betrag (EUR)</th>
+        <th class="text-right">Fifo (EUR)</th>
         <th class="text-right">Kummulative Anschaffungskosten (EUR)</th>
         <th>Anmerkung</th>
         <th class="text-right">Betrag Gesamt (HBAR)</th>
@@ -22,6 +23,7 @@
         <td>${transaction.timestamp()}</td>
         <td class="text-right">${transaction.hbarAmount()}</td>
         <td class="text-right">${transaction.eurAmount()}</td>
+        <td class="text-right">${transaction.fifoInEur()}</td>
         <td  class="text-right">${transaction.cumulativeCostInEur()}</td>
         <td>${transaction.note()}</td>
         <td class="text-right">${transaction.hbarBalanceAfterTransaction()}</td>
