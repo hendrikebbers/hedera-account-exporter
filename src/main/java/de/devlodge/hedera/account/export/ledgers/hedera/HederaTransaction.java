@@ -1,4 +1,4 @@
-package de.devlodge.hedera.account.export.models;
+package de.devlodge.hedera.account.export.ledgers.hedera;
 
 import java.util.List;
 

@@ -1,10 +1,8 @@
-package de.devlodge.hedera.account.export.clients;
+package de.devlodge.hedera.account.export.ledgers.hedera;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import de.devlodge.hedera.account.export.models.HederaTransaction;
-import de.devlodge.hedera.account.export.models.HederaTransfer;
 import de.devlodge.hedera.account.export.utils.HttpUtils;
 import java.io.IOException;
 import java.net.URI;
@@ -14,14 +12,14 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-public class HederaClient {
+public class HederaMirrorNodeHttpClient {
 
     public static final String MAINNET_MIRRORNODE_URL_BASE = "https://mainnet-public.mirrornode.hedera.com";
 
     public static final String GET_TRANSACTION_URL = MAINNET_MIRRORNODE_URL_BASE + "/api/v1/transactions?account.id=%s&order=asc&transactiontype=CRYPTOTRANSFER&result=success";
     private final HttpClient client;
 
-    public HederaClient() {
+    public HederaMirrorNodeHttpClient() {
         client = HttpClient.newHttpClient();
     }
 

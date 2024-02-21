@@ -1,6 +1,7 @@
-package de.devlodge.hedera.account.export.clients;
+package de.devlodge.hedera.account.export.exchange.coinbase;
 
-import de.devlodge.hedera.account.export.utils.ExchangePair;
+import de.devlodge.hedera.account.export.exchange.ExchangeClient;
+import de.devlodge.hedera.account.export.exchange.ExchangePair;
 import de.devlodge.hedera.account.export.utils.HttpUtils;
 import java.io.IOException;
 import java.math.BigDecimal;

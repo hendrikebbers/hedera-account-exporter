@@ -1,6 +1,6 @@
 package de.devlodge.hedera.account.export.service;
 
-import de.devlodge.hedera.account.export.models.Transaction;
+import de.devlodge.hedera.account.export.model.Transaction;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -14,8 +14,6 @@ import org.springframework.stereotype.Service;
 public class TransactionService {
 
     private final List<Transaction> transactions = new CopyOnWriteArrayList<>();
-
-
 
     public void addTransaction(final Transaction transaction) {
         transactions.add(transaction);

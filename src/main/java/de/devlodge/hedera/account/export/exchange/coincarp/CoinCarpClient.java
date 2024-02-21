@@ -1,6 +1,5 @@
-package de.devlodge.hedera.account.export.clients;
+package de.devlodge.hedera.account.export.exchange.coincarp;
 
-import de.devlodge.hedera.account.export.models.CoinCarpExchangeRate;
 import de.devlodge.hedera.account.export.utils.HttpUtils;
 import java.io.IOException;
 import java.net.http.HttpClient;
