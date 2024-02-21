@@ -2,6 +2,7 @@
 <html lang="en">
 <#include "common/head.ftlh">
 <body>
+<#include "common/bodyStart.ftlh">
 <main class="container">
     <#include "common/menu.ftlh">
   <section>
@@ -17,6 +18,5 @@
     </form>
   </section>
 </main>
-<#include "common/bodyEnd.ftlh">
 </body>
 </html>

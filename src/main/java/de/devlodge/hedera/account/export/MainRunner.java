@@ -1,8 +1,7 @@
 package de.devlodge.hedera.account.export;
 
 import de.devlodge.hedera.account.export.clients.ExchangeClient;
-import de.devlodge.hedera.account.export.factories.HederaBalanceTransactionFactory;
-import de.devlodge.hedera.account.export.factories.TransactionFactory;
+import de.devlodge.hedera.account.export.factories.HederaTransactionFactory;
 import de.devlodge.hedera.account.export.models.Transaction;
 import de.devlodge.hedera.account.export.service.TransactionService;
 import de.devlodge.hedera.account.export.utils.Currency;
@@ -12,6 +11,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
@@ -21,29 +21,25 @@ public class MainRunner implements ApplicationRunner {
 
     private final TransactionService transactionService;
 
-    private final TransactionFactory transactionFactory;
+    private final HederaTransactionFactory hederaTransactionFactory;
 
-    private final HederaBalanceTransactionFactory hederaBalanceTransactionFactory;
+    private final ExchangeClient exchangeClient;
 
-    private ExchangeClient exchangeClient;
+    private final String accountId;
 
     @Autowired
-    public MainRunner(final TransactionService transactionService,
-            TransactionFactory transactionFactory, HederaBalanceTransactionFactory hederaBalanceTransactionFactory,
-            ExchangeClient exchangeClient) {
+    public MainRunner(final TransactionService transactionService,HederaTransactionFactory hederaBalanceTransactionFactory,
+            ExchangeClient exchangeClient, @Value("${hedera.export.account}") final String accountId) {
         this.transactionService = Objects.requireNonNull(transactionService);
-        this.transactionFactory = Objects.requireNonNull(transactionFactory);
-        this.hederaBalanceTransactionFactory = Objects.requireNonNull(hederaBalanceTransactionFactory);
+        this.hederaTransactionFactory = Objects.requireNonNull(hederaBalanceTransactionFactory);
         this.exchangeClient = Objects.requireNonNull(exchangeClient);
+        this.accountId = Objects.requireNonNull(accountId);
     }
 
     @Override
     public void run(final ApplicationArguments args) throws Exception {
         //1. Get the transactions from Hedera
-        final var hederaBalanceTransactions = hederaBalanceTransactionFactory.create();
-
-        //2. Convert the transactions to the format we want -> TODO: steps 1 and 2 should be merged!
-        List<Transaction> transactions = transactionFactory.create(hederaBalanceTransactions);
+        List<Transaction> transactions = hederaTransactionFactory.getAllTransactionsForAccount(accountId);
 
         //3. Save the transactions
         transactionService.addAllTransactions(transactions);

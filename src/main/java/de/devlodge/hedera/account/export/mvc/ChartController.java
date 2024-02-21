@@ -14,6 +14,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class ChartController {
@@ -26,8 +27,10 @@ public class ChartController {
     }
 
     @RequestMapping(value = "/chart", method = RequestMethod.GET)
-    public String hello(final Model model) {
+    public String hello(final Model model, @RequestParam(value = "type", required = false, defaultValue = "eur") String type) {
         Objects.requireNonNull(model);
+        model.addAttribute("type", type);
+
         final List<Value> values = new ArrayList<>();
         transactionService.getTransactions().forEach(t -> values.add(new Value(
                 formatTimestamp(t.timestamp()),

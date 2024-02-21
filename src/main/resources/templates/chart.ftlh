@@ -2,15 +2,16 @@
 <html lang="en">
 <#include "common/head.ftlh">
 <body>
+<#include "common/bodyStart.ftlh">
 <main class="container">
     <#include "common/menu.ftlh">
   <section>
     <h2>Kontoverlauf</h2>
+    <#if type == 'hbar'>
     <canvas id="hbarChart"></canvas>
+    <#else>
     <canvas id="eurChart"></canvas>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.30.1/moment.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@1.0.1/dist/chartjs-adapter-moment.min.js"></script>
+    </#if>
     <script>
       var numberFormatOption = {
         minimumFractionDigits: 2,
@@ -66,16 +67,16 @@
           },
         }
       };
-
-      var hbarChartCtx = document.getElementById("hbarChart").getContext("2d");
-      new Chart(hbarChartCtx, hbarChartConfig);
-
-      var eurChartCtx = document.getElementById("eurChart").getContext("2d");
-      new Chart(eurChartCtx, eurChartConfig);
-
+      if(document.getElementById("hbarChart") != null) {
+        var hbarChartCtx = document.getElementById("hbarChart").getContext("2d");
+        new Chart(hbarChartCtx, hbarChartConfig);
+      }
+      if(document.getElementById("eurChart") != null) {
+        var eurChartCtx = document.getElementById("eurChart").getContext("2d");
+        new Chart(eurChartCtx, eurChartConfig);
+      }
     </script>
   </section>
 </main>
-<#include "common/bodyEnd.ftlh">
 </body>
 </html>
