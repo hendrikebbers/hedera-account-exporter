@@ -7,6 +7,7 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Controller
 public class ChartController {
@@ -26,15 +28,17 @@ public class ChartController {
     }
 
     @RequestMapping(value = "/chart", method = RequestMethod.GET)
-    public String hello(final Model model) {
+    public String hello(final Model model, @RequestParam(value = "type", required = false, defaultValue = "eur") String type) {
         Objects.requireNonNull(model);
+        model.addAttribute("type", type);
+
         final List<Value> values = new ArrayList<>();
         transactionService.getTransactions().forEach(t -> values.add(new Value(
                 formatTimestamp(t.timestamp()),
-                getHBarFormatted(t.hbarBalanceAfterTransaction()),
-                t.eurBalanceAfterTransaction()
+                t.hbarBalanceAfterTransaction().doubleValue(),
+                t.eurBalanceAfterTransaction().doubleValue()
         )));
-        values.sort((v1, v2) -> v1.timestamp.compareTo(v2.timestamp));
+        values.sort(Comparator.comparing(v -> v.timestamp));
         JsonArray xValues = new JsonArray();
         values.forEach(v -> xValues.add(v.timestamp));
         model.addAttribute("xValues", xValues.toString().replaceAll("\"", ""));
@@ -54,11 +58,6 @@ public class ChartController {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss")
                 .withZone(ZoneId.systemDefault());
         return "'" + formatter.format(timestamp) + "'";
-    }
-
-    private static double getHBarFormatted(long hbarAmount) {
-        BigDecimal hbar = new BigDecimal(hbarAmount).divide(BigDecimal.valueOf(100_000_000));
-        return hbar.doubleValue();
     }
 
     public record Value(String timestamp, double hbarAmount, double eurAmount){}

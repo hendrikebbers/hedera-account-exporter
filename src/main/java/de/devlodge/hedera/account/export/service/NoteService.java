@@ -1,6 +1,6 @@
 package de.devlodge.hedera.account.export.service;
 
-import de.devlodge.hedera.account.export.models.Transaction;
+import de.devlodge.hedera.account.export.model.Transaction;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;

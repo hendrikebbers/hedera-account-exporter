@@ -1,4 +1,4 @@
-package de.devlodge.hedera.account.export.clients;
+package de.devlodge.hedera.account.export.exchange.coincarp;
 
 public enum CoinCarpCodes {
     HBAR("hederahashgraph"),
