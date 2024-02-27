@@ -40,8 +40,11 @@ public class TransactionsController {
         final List<TransactionModel> transactions = new ArrayList<>();
         final AtomicReference<BigDecimal> cumulativeCost = new AtomicReference<BigDecimal>(new BigDecimal(0));
         transactionService.getTransactions().forEach(t -> {
-            TransactionModel transactionModel = convert(cumulativeCost.get(), t);
-            cumulativeCost.set(cumulativeCost.get().add(t.eurAmount()));
+            final TransactionModel transactionModel = convert(cumulativeCost.get(), t);
+            final BigDecimal newCumulativeCost = cumulativeCost.get()
+                    .add(t.eurAmount())
+                            .setScale(2, BigDecimal.ROUND_HALF_UP);
+            cumulativeCost.set(newCumulativeCost);
             transactions.add(transactionModel);
         });
         model.addAttribute("print", print);
@@ -81,14 +84,19 @@ public class TransactionsController {
             }
         });
         final Map<String, BigDecimal> fifo = calculateFifo(transactionService.getTransactions());
+
+        final BigDecimal newCumulativeCost = cumulativeCostBaseInEur
+                .add(transaction.eurAmount())
+                .setScale(2, BigDecimal.ROUND_HALF_UP);
+
         return new TransactionModel(
                 transaction.id().toString(),
-                transaction.hederaTransactionId(),
-                MvcUtils.formatTransactionLink(transaction.hederaTransactionId()),
+                transaction.networkId(),
+                MvcUtils.formatTransactionLink(transaction.networkId()),
                 MvcUtils.formatTimestamp(transaction.timestamp()),
                 MvcUtils.getHBarFormatted(transaction.hbarAmount()),
                 MvcUtils.getEurFormatted(transaction.eurAmount()),
-                MvcUtils.getEurFormatted(cumulativeCostBaseInEur.add(transaction.eurAmount())),
+                MvcUtils.getEurFormatted(newCumulativeCost),
                 note,
                 MvcUtils.getHBarFormatted(transaction.hbarBalanceAfterTransaction()),
                 MvcUtils.getEurFormatted(transaction.eurBalanceAfterTransaction()),
@@ -100,7 +108,7 @@ public class TransactionsController {
             final Map<String, BigDecimal> fifoMap = new HashMap<>();
             transactions.forEach(t -> {
                 if (t.eurAmount().doubleValue() > 0) {
-                    fifoMap.put(t.id().toString(), t.eurAmount());
+                    fifoMap.put(t.id().toString(), t.eurAmount().setScale(2, BigDecimal.ROUND_HALF_UP));
                 } else {
                     fifoMap.put(t.id().toString(), new BigDecimal(0.0));
                 }
@@ -108,15 +116,17 @@ public class TransactionsController {
 
             for(int i = 0; i < transactions.size(); i++) {
                 final Transaction transaction = transactions.get(i);
-                final BigDecimal amount = transaction.eurAmount();
+                final BigDecimal amount = transaction.eurAmount()
+                        .setScale(2, BigDecimal.ROUND_HALF_UP);
                 if(amount.doubleValue() < 0) {
-                    BigDecimal remainingAmount = amount.multiply(new BigDecimal(-1));
+                    BigDecimal remainingAmount = amount.multiply(new BigDecimal(-1))
+                            .setScale(2, BigDecimal.ROUND_HALF_UP);
                     for(int j = 0; j < i; j++) {
                         final Transaction transactionForFifo = transactions.get(j);
                         final BigDecimal availableFifo = fifoMap.get(transactionForFifo.id().toString());
                         if(availableFifo.doubleValue() > 0) {
                             final BigDecimal fifo = availableFifo.min(remainingAmount);
-                            fifoMap.put(transactionForFifo.id().toString(), availableFifo.subtract(fifo));
+                            fifoMap.put(transactionForFifo.id().toString(), availableFifo.subtract(fifo).setScale(2, BigDecimal.ROUND_HALF_UP));
                             remainingAmount =remainingAmount.subtract(fifo);
                             if(remainingAmount.doubleValue() == 0) {
                                 break;

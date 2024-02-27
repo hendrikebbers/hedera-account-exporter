@@ -43,7 +43,7 @@ public class NoteService {
 
     private String hash(final Transaction transaction) {
         Objects.requireNonNull(transaction, "transaction must not be null");
-        return transaction.hederaTransactionId() + "-" + transaction.timestamp() + "-" + transaction.hbarAmount();
+        return transaction.networkId() + "-" + transaction.timestamp() + "-" + transaction.hbarAmount();
     }
 
     private void load() {
