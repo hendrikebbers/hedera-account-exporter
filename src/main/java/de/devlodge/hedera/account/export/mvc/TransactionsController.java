@@ -1,5 +1,8 @@
 package de.devlodge.hedera.account.export.mvc;
 
+import de.devlodge.hedera.account.export.exchange.ExchangeClient;
+import de.devlodge.hedera.account.export.exchange.ExchangePair;
+import de.devlodge.hedera.account.export.model.Currency;
 import de.devlodge.hedera.account.export.model.Transaction;
 import de.devlodge.hedera.account.export.service.NoteService;
 import de.devlodge.hedera.account.export.service.TransactionService;
@@ -28,10 +31,14 @@ public class TransactionsController {
 
     private final NoteService noteService;
 
+    private final ExchangeClient exchangeClient;
+
     @Autowired
-    public TransactionsController(final TransactionService transactionService, final NoteService noteService) {
+    public TransactionsController(final TransactionService transactionService, final NoteService noteService,
+            ExchangeClient exchangeClient) {
         this.transactionService = Objects.requireNonNull(transactionService);
         this.noteService = Objects.requireNonNull(noteService);
+        this.exchangeClient = Objects.requireNonNull(exchangeClient);
     }
 
     @RequestMapping(value = "/transactions", method = RequestMethod.GET)
@@ -40,9 +47,14 @@ public class TransactionsController {
         final List<TransactionModel> transactions = new ArrayList<>();
         final AtomicReference<BigDecimal> cumulativeCost = new AtomicReference<BigDecimal>(new BigDecimal(0));
         transactionService.getTransactions().forEach(t -> {
-            TransactionModel transactionModel = convert(cumulativeCost.get(), t);
-            cumulativeCost.set(cumulativeCost.get().add(t.eurAmount()));
+            final TransactionModel transactionModel = convert(cumulativeCost.get(), t);
             transactions.add(transactionModel);
+
+            final BigDecimal exchangeRate =getExchangeRate(t);
+            final BigDecimal eurAmount = t.hbarAmount().multiply(exchangeRate);
+            final BigDecimal newCumulativeCost = cumulativeCost.get()
+                    .add(eurAmount).setScale(2, BigDecimal.ROUND_HALF_UP);
+            cumulativeCost.set(newCumulativeCost);
         });
         model.addAttribute("print", print);
         model.addAttribute("transactions", transactions);
@@ -81,26 +93,46 @@ public class TransactionsController {
             }
         });
         final Map<String, BigDecimal> fifo = calculateFifo(transactionService.getTransactions());
+
+        final BigDecimal exchangeRate = getExchangeRate(transaction);
+        final BigDecimal eurAmount = transaction.hbarAmount().multiply(exchangeRate);
+        final BigDecimal eurBalanceAfterTransaction = transaction.hbarBalanceAfterTransaction().multiply(exchangeRate);
+
+        final BigDecimal newCumulativeCost = cumulativeCostBaseInEur
+                .add(eurAmount)
+                .setScale(2, BigDecimal.ROUND_HALF_UP);
+
         return new TransactionModel(
                 transaction.id().toString(),
-                transaction.hederaTransactionId(),
-                MvcUtils.formatTransactionLink(transaction.hederaTransactionId()),
+                transaction.networkId(),
+                MvcUtils.formatTransactionLink(transaction.networkId()),
                 MvcUtils.formatTimestamp(transaction.timestamp()),
                 MvcUtils.getHBarFormatted(transaction.hbarAmount()),
-                MvcUtils.getEurFormatted(transaction.eurAmount()),
-                MvcUtils.getEurFormatted(cumulativeCostBaseInEur.add(transaction.eurAmount())),
+                MvcUtils.getEurFormatted(eurAmount),
+                MvcUtils.getEurFormatted(newCumulativeCost),
                 note,
                 MvcUtils.getHBarFormatted(transaction.hbarBalanceAfterTransaction()),
-                MvcUtils.getEurFormatted(transaction.eurBalanceAfterTransaction()),
+                MvcUtils.getEurFormatted(eurBalanceAfterTransaction),
                 MvcUtils.getEurFormatted(fifo.get(transaction.id().toString()))
         );
+    }
+
+    private BigDecimal getExchangeRate(final Transaction transaction) {
+        try {
+            return exchangeClient.getExchangeRate(new ExchangePair(Currency.HBAR, Currency.EUR),
+                    transaction.timestamp());
+        } catch (Exception e) {
+            throw new RuntimeException("Can not get exchange rate", e);
+        }
     }
 
     private Map<String, BigDecimal> calculateFifo(List<Transaction> transactions) {
             final Map<String, BigDecimal> fifoMap = new HashMap<>();
             transactions.forEach(t -> {
-                if (t.eurAmount().doubleValue() > 0) {
-                    fifoMap.put(t.id().toString(), t.eurAmount());
+                if (t.hbarAmount().doubleValue() > 0) {
+                    final BigDecimal exchangeRate = getExchangeRate(t);
+                    final BigDecimal eurAmount = t.hbarAmount().multiply(exchangeRate);
+                    fifoMap.put(t.id().toString(), eurAmount.setScale(2, BigDecimal.ROUND_HALF_UP));
                 } else {
                     fifoMap.put(t.id().toString(), new BigDecimal(0.0));
                 }
@@ -108,15 +140,19 @@ public class TransactionsController {
 
             for(int i = 0; i < transactions.size(); i++) {
                 final Transaction transaction = transactions.get(i);
-                final BigDecimal amount = transaction.eurAmount();
+                final BigDecimal exchangeRate = getExchangeRate(transaction);
+                final BigDecimal eurAmount = transaction.hbarAmount().multiply(exchangeRate);
+                final BigDecimal amount = eurAmount
+                        .setScale(2, BigDecimal.ROUND_HALF_UP);
                 if(amount.doubleValue() < 0) {
-                    BigDecimal remainingAmount = amount.multiply(new BigDecimal(-1));
+                    BigDecimal remainingAmount = amount.multiply(new BigDecimal(-1))
+                            .setScale(2, BigDecimal.ROUND_HALF_UP);
                     for(int j = 0; j < i; j++) {
                         final Transaction transactionForFifo = transactions.get(j);
                         final BigDecimal availableFifo = fifoMap.get(transactionForFifo.id().toString());
                         if(availableFifo.doubleValue() > 0) {
                             final BigDecimal fifo = availableFifo.min(remainingAmount);
-                            fifoMap.put(transactionForFifo.id().toString(), availableFifo.subtract(fifo));
+                            fifoMap.put(transactionForFifo.id().toString(), availableFifo.subtract(fifo).setScale(2, BigDecimal.ROUND_HALF_UP));
                             remainingAmount =remainingAmount.subtract(fifo);
                             if(remainingAmount.doubleValue() == 0) {
                                 break;

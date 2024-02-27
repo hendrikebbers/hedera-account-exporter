@@ -4,5 +4,5 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
-public record Transaction(Network network, UUID id, String hederaTransactionId, Instant timestamp, BigDecimal hbarAmount,
-                          BigDecimal eurAmount, boolean isStakingReward, BigDecimal hbarBalanceAfterTransaction, BigDecimal eurBalanceAfterTransaction){}
+public record Transaction(Network network, UUID id, String networkId, Instant timestamp, BigDecimal hbarAmount,
+                          boolean isStakingReward, BigDecimal hbarBalanceAfterTransaction){}

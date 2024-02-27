@@ -1,6 +1,10 @@
 package de.devlodge.hedera.account.export.mvc;
 
 import com.google.gson.JsonArray;
+import de.devlodge.hedera.account.export.exchange.ExchangeClient;
+import de.devlodge.hedera.account.export.exchange.ExchangePair;
+import de.devlodge.hedera.account.export.model.Currency;
+import de.devlodge.hedera.account.export.model.Transaction;
 import de.devlodge.hedera.account.export.service.TransactionService;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -22,9 +26,21 @@ public class ChartController {
 
     private final TransactionService transactionService;
 
+    private final ExchangeClient exchangeClient;
+
     @Autowired
-    public ChartController(final TransactionService transactionService) {
+    public ChartController(final TransactionService transactionService, ExchangeClient exchangeClient) {
         this.transactionService = Objects.requireNonNull(transactionService);
+        this.exchangeClient = Objects.requireNonNull(exchangeClient);
+    }
+
+    private BigDecimal getExchangeRate(final Transaction transaction) {
+        try {
+            return exchangeClient.getExchangeRate(new ExchangePair(Currency.HBAR, Currency.EUR),
+                    transaction.timestamp());
+        } catch (Exception e) {
+            throw new RuntimeException("Can not get exchange rate", e);
+        }
     }
 
     @RequestMapping(value = "/chart", method = RequestMethod.GET)
@@ -33,11 +49,13 @@ public class ChartController {
         model.addAttribute("type", type);
 
         final List<Value> values = new ArrayList<>();
-        transactionService.getTransactions().forEach(t -> values.add(new Value(
-                formatTimestamp(t.timestamp()),
-                t.hbarBalanceAfterTransaction().doubleValue(),
-                t.eurBalanceAfterTransaction().doubleValue()
-        )));
+        transactionService.getTransactions().forEach(t -> {
+            final String timestamp = formatTimestamp(t.timestamp());
+            final double hbarAmount = t.hbarBalanceAfterTransaction().doubleValue();
+            final BigDecimal exchangeRate = getExchangeRate(t);
+            final double eurAmount = t.hbarBalanceAfterTransaction().multiply(exchangeRate).doubleValue();
+            values.add(new Value(timestamp, hbarAmount, eurAmount));
+        });
         values.sort(Comparator.comparing(v -> v.timestamp));
         JsonArray xValues = new JsonArray();
         values.forEach(v -> xValues.add(v.timestamp));
