@@ -20,12 +20,6 @@ import org.springframework.stereotype.Service;
 public class HederaClient implements LedgerClient {
 
     public static final BigDecimal TINY_BAR_TO_HBAR_FACTOR = new BigDecimal(100_000_000);
-    private final ExchangeClient exchangeClient;
-
-    @Autowired
-    public HederaClient(ExchangeClient exchangeClient) {
-        this.exchangeClient = Objects.requireNonNull(exchangeClient);
-    }
 
     public List<Transaction> getAllTransactionsForAccount(final String accountId) throws Exception {
         final var hederaTransaction = new HederaMirrorNodeHttpClient().request(accountId);
@@ -56,16 +50,12 @@ public class HederaClient implements LedgerClient {
     private Transaction convert(final HederaTransaction hederaTransaction, final HederaTransfer hederaTransfer, boolean isStakingReward, final HederaAccount account) {
         try {
             final Instant timestamp = getInstantFromTimestamp(hederaTransaction.timestamp());
-            final BigDecimal exchangeRateEur = exchangeClient.getExchangeRate(
-                    new ExchangePair(Currency.HBAR, Currency.EUR), timestamp);
             final BigDecimal hbarAmount = new BigDecimal(hederaTransfer.amount()).divide(TINY_BAR_TO_HBAR_FACTOR);
-            final BigDecimal eurAmount = hbarAmount.multiply(exchangeRateEur);
             final BigDecimal hbarBalance = account.addHbarBalance(hbarAmount);
-            final BigDecimal eurBalance = hbarBalance.multiply(exchangeRateEur);
             return new Transaction(Network.HEDERA_MAINNET, UUID.randomUUID(), hederaTransaction.transaction_id(),
-                    timestamp, hbarAmount, eurAmount,
+                    timestamp, hbarAmount,
                     isStakingReward,
-                    hbarBalance, eurBalance);
+                    hbarBalance);
         } catch (Exception e) {
             throw new RuntimeException("Can not create transaction", e);
         }
