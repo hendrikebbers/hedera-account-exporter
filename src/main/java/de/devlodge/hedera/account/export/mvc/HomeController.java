@@ -46,7 +46,7 @@ public class HomeController {
 
             final BigDecimal stackingHbarAmount = transactions.stream()
                     .filter(transaction -> transaction.isStakingReward())
-                    .map(Transaction::hbarAmount)
+                    .map(Transaction::amount)
                             .reduce(new BigDecimal(0), (a, b) -> a.add(b));
             model.addAttribute("stackedHbar", MvcUtils.getHBarFormatted(stackingHbarAmount));
 
