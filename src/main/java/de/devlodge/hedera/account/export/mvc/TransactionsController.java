@@ -96,7 +96,7 @@ public class TransactionsController {
 
         final BigDecimal exchangeRate = getExchangeRate(transaction);
         final BigDecimal eurAmount = transaction.amount().multiply(exchangeRate);
-        final BigDecimal eurBalanceAfterTransaction = transaction.hbarBalanceAfterTransaction().multiply(exchangeRate);
+        final BigDecimal eurBalanceAfterTransaction = transaction.balanceAfterTransaction().multiply(exchangeRate);
 
         final BigDecimal newCumulativeCost = cumulativeCostBaseInEur
                 .add(eurAmount)
@@ -111,7 +111,7 @@ public class TransactionsController {
                 MvcUtils.getEurFormatted(eurAmount),
                 MvcUtils.getEurFormatted(newCumulativeCost),
                 note,
-                MvcUtils.getHBarFormatted(transaction.hbarBalanceAfterTransaction()),
+                MvcUtils.getHBarFormatted(transaction.balanceAfterTransaction()),
                 MvcUtils.getEurFormatted(eurBalanceAfterTransaction),
                 MvcUtils.getEurFormatted(fifo.get(transaction.id().toString()))
         );

@@ -4,7 +4,6 @@ import com.google.gson.JsonArray;
 import de.devlodge.hedera.account.export.exchange.ExchangeClient;
 import de.devlodge.hedera.account.export.exchange.ExchangePair;
 import de.devlodge.hedera.account.export.model.Currency;
-import de.devlodge.hedera.account.export.model.Network;
 import de.devlodge.hedera.account.export.model.Transaction;
 import de.devlodge.hedera.account.export.service.TransactionService;
 import java.math.BigDecimal;
@@ -15,7 +14,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
 import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -48,14 +46,14 @@ public class ChartController {
                     .sorted(Comparator.comparing(Transaction::timestamp))
                     .map(t -> {
                         final String xValue = formatTimestamp(t.timestamp());
-                        final String yValue = t.hbarBalanceAfterTransaction().toString();
+                        final String yValue = t.balanceAfterTransaction().toString();
                         return new ChartValue(xValue, yValue);
                     })
                     .toList();
             final List<ChartValue> values = new ArrayList<>(converted);
             final Instant now = Instant.now();
             final String xValue = formatTimestamp(now);
-            final String yValue = transactions.get(transactions.size() - 1).hbarBalanceAfterTransaction().toString();
+            final String yValue = transactions.get(transactions.size() - 1).balanceAfterTransaction().toString();
             values.add(new ChartValue(xValue, yValue));
             addChartToModel(model, values);
         } else if(type.equals("eur")) {
@@ -64,7 +62,7 @@ public class ChartController {
                     .map(t -> {
                         final BigDecimal exchangeRate = getExchangeRate(t);
                         final String xValue = formatTimestamp(t.timestamp());
-                        final String yValue = t.hbarBalanceAfterTransaction().multiply(exchangeRate).toString();
+                        final String yValue = t.balanceAfterTransaction().multiply(exchangeRate).toString();
                         return new ChartValue(xValue, yValue);
                     })
                     .toList();
@@ -72,7 +70,7 @@ public class ChartController {
             final Instant now = Instant.now();
             final BigDecimal exchangeRate = getExchangeRate(now);
             final String xValue = formatTimestamp(now);
-            final String yValue = transactions.get(transactions.size() - 1).hbarBalanceAfterTransaction().multiply(exchangeRate).toString();
+            final String yValue = transactions.get(transactions.size() - 1).balanceAfterTransaction().multiply(exchangeRate).toString();
             values.add(new ChartValue(xValue, yValue));
             addChartToModel(model, values);
         } else if(type.equals("staking")) {

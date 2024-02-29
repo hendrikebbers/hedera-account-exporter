@@ -38,7 +38,7 @@ public class HomeController {
         model.addAttribute("exchangeRate", MvcUtils.getEurFormatted(exchangeRate));
 
         if(!transactions.isEmpty()) {
-            final BigDecimal hbarAmount = transactions.get(transactions.size() - 1).hbarBalanceAfterTransaction();
+            final BigDecimal hbarAmount = transactions.get(transactions.size() - 1).balanceAfterTransaction();
             model.addAttribute("hbarAmount", MvcUtils.getHBarFormatted(hbarAmount));
 
             final BigDecimal eurAmount = hbarAmount.multiply(exchangeRate);
