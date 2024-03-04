@@ -5,9 +5,11 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
+import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Optional;
@@ -25,7 +27,6 @@ public class NoteService {
         String noteFile = System.getProperty("user.home") + File.separator + ".crypto-export" + File.separator + "notes.properties";
         this.path = Path.of(noteFile);
         this.notes = new Properties();
-
         load();
     }
 
@@ -43,7 +44,15 @@ public class NoteService {
 
     private String hash(final Transaction transaction) {
         Objects.requireNonNull(transaction, "transaction must not be null");
-        return transaction.networkId() + "-" + transaction.timestamp() + "-" + transaction.hbarAmount();
+        try {
+            final String originalString =
+                    transaction.networkId() + "-" + transaction.timestamp() + "-" + transaction.amount();
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = digest.digest(originalString.getBytes(StandardCharsets.UTF_8));
+            return new String(encodedhash, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            throw new RuntimeException("Could not hash note", e);
+        }
     }
 
     private void load() {

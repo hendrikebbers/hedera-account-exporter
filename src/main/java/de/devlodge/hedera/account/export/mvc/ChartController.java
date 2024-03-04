@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -34,50 +35,94 @@ public class ChartController {
         this.exchangeClient = Objects.requireNonNull(exchangeClient);
     }
 
+    @RequestMapping(value = "/chart", method = RequestMethod.GET)
+    public String chart(final Model model, @RequestParam(value = "type", required = false, defaultValue = "eur") String type) {
+        Objects.requireNonNull(model);
+        model.addAttribute("type", type);
+        final List<Transaction> transactions = transactionService.getTransactions();
+
+        if(type.equals("hbar")) {
+            final List<ChartValue> converted = transactions.stream()
+                    .sorted(Comparator.comparing(Transaction::timestamp))
+                    .map(t -> {
+                        final String xValue = formatTimestamp(t.timestamp());
+                        final String yValue = t.balanceAfterTransaction().toString();
+                        return new ChartValue(xValue, yValue);
+                    })
+                    .toList();
+            final List<ChartValue> values = new ArrayList<>(converted);
+            final Instant now = Instant.now();
+            final String xValue = formatTimestamp(now);
+            final String yValue = transactions.get(transactions.size() - 1).balanceAfterTransaction().toString();
+            values.add(new ChartValue(xValue, yValue));
+            addChartToModel(model, values);
+        } else if(type.equals("eur")) {
+            final List<ChartValue> converted = transactions.stream()
+                    .sorted(Comparator.comparing(Transaction::timestamp))
+                    .map(t -> {
+                        final BigDecimal exchangeRate = getExchangeRate(t);
+                        final String xValue = formatTimestamp(t.timestamp());
+                        final String yValue = t.balanceAfterTransaction().multiply(exchangeRate).toString();
+                        return new ChartValue(xValue, yValue);
+                    })
+                    .toList();
+            final List<ChartValue> values = new ArrayList<>(converted);
+            final Instant now = Instant.now();
+            final BigDecimal exchangeRate = getExchangeRate(now);
+            final String xValue = formatTimestamp(now);
+            final String yValue = transactions.get(transactions.size() - 1).balanceAfterTransaction().multiply(exchangeRate).toString();
+            values.add(new ChartValue(xValue, yValue));
+            addChartToModel(model, values);
+        } else if(type.equals("staking")) {
+            final List<Transaction> converted = transactions.stream()
+                    .filter(t -> t.isStakingReward())
+                    .sorted(Comparator.comparing(Transaction::timestamp))
+                    .toList();
+            final List<ChartValue> values = new ArrayList<>();
+            for (Transaction transaction : converted) {
+                final String xValue = formatTimestamp(transaction.timestamp());
+                if(values.isEmpty()) {
+                    values.add(new ChartValue(xValue, transaction.amount().toString()));
+                } else {
+                    final String yValue = (Double.valueOf(values.get(values.size() - 1).yValue) + transaction.amount().doubleValue()) + "";
+                    values.add(new ChartValue(xValue, yValue));
+                }
+            }
+            addChartToModel(model, values);
+        }
+        return "chart";
+    }
+
+    private void addChartToModel(final Model model, final List<ChartValue> values) {
+        model.addAttribute("xValues", convertToChartValues(values, v -> v.xValue));
+        model.addAttribute("yValues", convertToChartValues(values, v -> v.yValue));
+    }
+
     private BigDecimal getExchangeRate(final Transaction transaction) {
+        return getExchangeRate(transaction.timestamp());
+    }
+
+    private BigDecimal getExchangeRate(final Instant timestamp) {
         try {
             return exchangeClient.getExchangeRate(new ExchangePair(Currency.HBAR, Currency.EUR),
-                    transaction.timestamp());
+                    timestamp);
         } catch (Exception e) {
             throw new RuntimeException("Can not get exchange rate", e);
         }
     }
 
-    @RequestMapping(value = "/chart", method = RequestMethod.GET)
-    public String hello(final Model model, @RequestParam(value = "type", required = false, defaultValue = "eur") String type) {
-        Objects.requireNonNull(model);
-        model.addAttribute("type", type);
-
-        final List<Value> values = new ArrayList<>();
-        transactionService.getTransactions().forEach(t -> {
-            final String timestamp = formatTimestamp(t.timestamp());
-            final double hbarAmount = t.hbarBalanceAfterTransaction().doubleValue();
-            final BigDecimal exchangeRate = getExchangeRate(t);
-            final double eurAmount = t.hbarBalanceAfterTransaction().multiply(exchangeRate).doubleValue();
-            values.add(new Value(timestamp, hbarAmount, eurAmount));
-        });
-        values.sort(Comparator.comparing(v -> v.timestamp));
-        JsonArray xValues = new JsonArray();
-        values.forEach(v -> xValues.add(v.timestamp));
-        model.addAttribute("xValues", xValues.toString().replaceAll("\"", ""));
-
-        final JsonArray hbarValues = new JsonArray();
-        values.forEach(v -> hbarValues.add(v.hbarAmount));
-        model.addAttribute("hbarValues", hbarValues.toString());
-
-        final JsonArray eurValues = new JsonArray();
-        values.forEach(v -> eurValues.add(v.eurAmount));
-        model.addAttribute("eurValues", eurValues.toString());
-        return "chart";
+    private <T> String convertToChartValues(List<T> values, Function<T, Object> valueFunction) {
+        JsonArray jsonArray = new JsonArray();
+        values.forEach(v -> jsonArray.add(valueFunction.apply(v).toString()));
+        return jsonArray.toString();
     }
 
     private static String formatTimestamp(Instant timestamp) {
         //moment('2016-03-12 13:00:00')
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss")
                 .withZone(ZoneId.systemDefault());
-        return "'" + formatter.format(timestamp) + "'";
+        return formatter.format(timestamp);
     }
 
-    public record Value(String timestamp, double hbarAmount, double eurAmount){}
-
+    private record ChartValue(String xValue, String yValue) {}
 }
