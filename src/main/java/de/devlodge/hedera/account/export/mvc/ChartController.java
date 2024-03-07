@@ -14,6 +14,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -49,13 +51,27 @@ public class ChartController {
         model.addAttribute("type", type);
 
         final List<Value> values = new ArrayList<>();
-        transactionService.getTransactions().forEach(t -> {
-            final String timestamp = formatTimestamp(t.timestamp());
-            final double hbarAmount = t.hbarBalanceAfterTransaction().doubleValue();
-            final BigDecimal exchangeRate = getExchangeRate(t);
-            final double eurAmount = t.hbarBalanceAfterTransaction().multiply(exchangeRate).doubleValue();
-            values.add(new Value(timestamp, hbarAmount, eurAmount));
-        });
+        if(type.equals("stakingEur") || type.equals("stakingHbar")) {
+            AtomicReference<BigDecimal> stakingReward = new AtomicReference<>(BigDecimal.ZERO);
+            transactionService.getTransactions().stream()
+                    .filter(t -> t.isStakingReward())
+                    .forEach(t -> {
+                final String timestamp = formatTimestamp(t.timestamp());
+                final BigDecimal hbarAmount = t.hbarAmount();
+                stakingReward.set(stakingReward.get().add(hbarAmount));
+                final BigDecimal exchangeRate = getExchangeRate(t);
+                final double eurAmount = stakingReward.get().multiply(exchangeRate).doubleValue();
+                values.add(new Value(timestamp, stakingReward.get().doubleValue(), eurAmount, exchangeRate.doubleValue()));
+            });
+        } else {
+            transactionService.getTransactions().forEach(t -> {
+                final String timestamp = formatTimestamp(t.timestamp());
+                final double hbarAmount = t.hbarBalanceAfterTransaction().doubleValue();
+                final BigDecimal exchangeRate = getExchangeRate(t);
+                final double eurAmount = t.hbarBalanceAfterTransaction().multiply(exchangeRate).doubleValue();
+                values.add(new Value(timestamp, hbarAmount, eurAmount, exchangeRate.doubleValue()));
+            });
+        }
         values.sort(Comparator.comparing(v -> v.timestamp));
         JsonArray xValues = new JsonArray();
         values.forEach(v -> xValues.add(v.timestamp));
@@ -65,9 +81,15 @@ public class ChartController {
         values.forEach(v -> hbarValues.add(v.hbarAmount));
         model.addAttribute("hbarValues", hbarValues.toString());
 
-        final JsonArray eurValues = new JsonArray();
-        values.forEach(v -> eurValues.add(v.eurAmount));
-        model.addAttribute("eurValues", eurValues.toString());
+        if(type.equals("exchange")) {
+            final JsonArray exchangeValues = new JsonArray();
+            values.forEach(v -> exchangeValues.add(v.exchangeRate));
+            model.addAttribute("eurValues", exchangeValues.toString());
+        } else {
+            final JsonArray eurValues = new JsonArray();
+            values.forEach(v -> eurValues.add(v.eurAmount));
+            model.addAttribute("eurValues", eurValues.toString());
+        }
         return "chart";
     }
 
@@ -78,6 +100,6 @@ public class ChartController {
         return "'" + formatter.format(timestamp) + "'";
     }
 
-    public record Value(String timestamp, double hbarAmount, double eurAmount){}
+    public record Value(String timestamp, double hbarAmount, double eurAmount, double exchangeRate){}
 
 }

@@ -18,6 +18,15 @@
         <li class="nav-item">
           <a class="nav-link" href="/chart?type=hbar">Hbar Chart</a>
         </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/chart?type=exchange">Exchange Chart</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/chart?type=stakingHbar">Staking HBAR Chart</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="/chart?type=stakingEur">Staking EUR Chart</a>
+        </li>
       </ul>
     </div>
   </div>

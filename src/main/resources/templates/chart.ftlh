@@ -9,7 +9,17 @@
     <h2>Kontoverlauf</h2>
     <#if type == 'hbar'>
     <canvas id="hbarChart"></canvas>
-    <#else>
+    </#if>
+    <#if type == 'stakingHbar'>
+    <canvas id="hbarChart"></canvas>
+    </#if>
+    <#if type == 'eur'>
+    <canvas id="eurChart"></canvas>
+    </#if>
+    <#if type == 'exchange'>
+    <canvas id="eurChart"></canvas>
+    </#if>
+    <#if type == 'stakingEur'>
     <canvas id="eurChart"></canvas>
     </#if>
     <script>
