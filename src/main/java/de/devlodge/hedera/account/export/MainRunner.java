@@ -37,7 +37,7 @@ public class MainRunner implements ApplicationRunner {
         //1. Get the transactions from Hedera
         List<Transaction> transactions = hederaTransactionFactory.getAllTransactionsForAccount(accountId);
 
-        //3. Save the transactions
+        //2. Store the transactions
         transactionService.addAllTransactions(transactions);
 
         System.out.println("Transactions saved");

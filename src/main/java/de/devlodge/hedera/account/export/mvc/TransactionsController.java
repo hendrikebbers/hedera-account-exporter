@@ -51,7 +51,7 @@ public class TransactionsController {
             transactions.add(transactionModel);
 
             final BigDecimal exchangeRate =getExchangeRate(t);
-            final BigDecimal eurAmount = t.hbarAmount().multiply(exchangeRate);
+            final BigDecimal eurAmount = t.amount().multiply(exchangeRate);
             final BigDecimal newCumulativeCost = cumulativeCost.get()
                     .add(eurAmount).setScale(2, BigDecimal.ROUND_HALF_UP);
             cumulativeCost.set(newCumulativeCost);
@@ -95,8 +95,8 @@ public class TransactionsController {
         final Map<String, BigDecimal> fifo = calculateFifo(transactionService.getTransactions());
 
         final BigDecimal exchangeRate = getExchangeRate(transaction);
-        final BigDecimal eurAmount = transaction.hbarAmount().multiply(exchangeRate);
-        final BigDecimal eurBalanceAfterTransaction = transaction.hbarBalanceAfterTransaction().multiply(exchangeRate);
+        final BigDecimal eurAmount = transaction.amount().multiply(exchangeRate);
+        final BigDecimal eurBalanceAfterTransaction = transaction.balanceAfterTransaction().multiply(exchangeRate);
 
         final BigDecimal newCumulativeCost = cumulativeCostBaseInEur
                 .add(eurAmount)
@@ -107,11 +107,11 @@ public class TransactionsController {
                 transaction.networkId(),
                 MvcUtils.formatTransactionLink(transaction.networkId()),
                 MvcUtils.formatTimestamp(transaction.timestamp()),
-                MvcUtils.getHBarFormatted(transaction.hbarAmount()),
+                MvcUtils.getHBarFormatted(transaction.amount()),
                 MvcUtils.getEurFormatted(eurAmount),
                 MvcUtils.getEurFormatted(newCumulativeCost),
                 note,
-                MvcUtils.getHBarFormatted(transaction.hbarBalanceAfterTransaction()),
+                MvcUtils.getHBarFormatted(transaction.balanceAfterTransaction()),
                 MvcUtils.getEurFormatted(eurBalanceAfterTransaction),
                 MvcUtils.getEurFormatted(fifo.get(transaction.id().toString()))
         );
@@ -129,9 +129,9 @@ public class TransactionsController {
     private Map<String, BigDecimal> calculateFifo(List<Transaction> transactions) {
             final Map<String, BigDecimal> fifoMap = new HashMap<>();
             transactions.forEach(t -> {
-                if (t.hbarAmount().doubleValue() > 0) {
+                if (t.amount().doubleValue() > 0) {
                     final BigDecimal exchangeRate = getExchangeRate(t);
-                    final BigDecimal eurAmount = t.hbarAmount().multiply(exchangeRate);
+                    final BigDecimal eurAmount = t.amount().multiply(exchangeRate);
                     fifoMap.put(t.id().toString(), eurAmount.setScale(2, BigDecimal.ROUND_HALF_UP));
                 } else {
                     fifoMap.put(t.id().toString(), new BigDecimal(0.0));
@@ -141,7 +141,7 @@ public class TransactionsController {
             for(int i = 0; i < transactions.size(); i++) {
                 final Transaction transaction = transactions.get(i);
                 final BigDecimal exchangeRate = getExchangeRate(transaction);
-                final BigDecimal eurAmount = transaction.hbarAmount().multiply(exchangeRate);
+                final BigDecimal eurAmount = transaction.amount().multiply(exchangeRate);
                 final BigDecimal amount = eurAmount
                         .setScale(2, BigDecimal.ROUND_HALF_UP);
                 if(amount.doubleValue() < 0) {

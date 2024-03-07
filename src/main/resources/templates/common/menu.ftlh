@@ -19,13 +19,13 @@
           <a class="nav-link" href="/chart?type=hbar">Hbar Chart</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="/chart?type=exchange">Exchange Chart</a>
+          <a class="nav-link" href="/chart?type=stakingEur">Staking Euro</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="/chart?type=stakingHbar">Staking HBAR Chart</a>
+          <a class="nav-link" href="/chart?type=stakingHbar">Staking Hbar</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="/chart?type=stakingEur">Staking EUR Chart</a>
+          <a class="nav-link" href="/chart?type=exchange">Wechselkurs</a>
         </li>
       </ul>
     </div>

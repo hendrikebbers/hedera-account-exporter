@@ -30,7 +30,7 @@ public class HomeController {
     }
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
-    public String hello(final Model model) throws Exception {
+    public String index(final Model model) throws Exception {
         Objects.requireNonNull(model);
         final List<Transaction> transactions = transactionService.getTransactions();
         final ExchangePair exchangePair = new ExchangePair(Currency.HBAR, Currency.EUR);
@@ -38,7 +38,7 @@ public class HomeController {
         model.addAttribute("exchangeRate", MvcUtils.getEurFormatted(exchangeRate));
 
         if(!transactions.isEmpty()) {
-            final BigDecimal hbarAmount = transactions.get(transactions.size() - 1).hbarBalanceAfterTransaction();
+            final BigDecimal hbarAmount = transactions.get(transactions.size() - 1).balanceAfterTransaction();
             model.addAttribute("hbarAmount", MvcUtils.getHBarFormatted(hbarAmount));
 
             final BigDecimal eurAmount = hbarAmount.multiply(exchangeRate);
@@ -46,7 +46,7 @@ public class HomeController {
 
             final BigDecimal stackingHbarAmount = transactions.stream()
                     .filter(transaction -> transaction.isStakingReward())
-                    .map(Transaction::hbarAmount)
+                    .map(Transaction::amount)
                             .reduce(new BigDecimal(0), (a, b) -> a.add(b));
             model.addAttribute("stackedHbar", MvcUtils.getHBarFormatted(stackingHbarAmount));
 

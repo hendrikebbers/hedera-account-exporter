@@ -14,8 +14,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -36,70 +36,115 @@ public class ChartController {
         this.exchangeClient = Objects.requireNonNull(exchangeClient);
     }
 
+    @RequestMapping(value = "/chart", method = RequestMethod.GET)
+    public String chart(final Model model, @RequestParam(value = "type", required = false, defaultValue = "eur") String type) {
+        Objects.requireNonNull(model);
+        ChartType chartType = ChartType.fromString(type);
+        model.addAttribute("type", chartType.getValue());
+        model.addAttribute("headline", chartType.getHeader());
+        addChartToModel(model, calculateValues(chartType));
+        if(chartType == ChartType.EXCHANGE_RATE || chartType == ChartType.EUR || chartType == ChartType.STACKING_EUR) {
+            return "chart-eur";
+        } else {
+            return "chart-hbar";
+        }
+    }
+
+    private List<ChartValue> calculateValues(ChartType chartType) {
+        final List<Transaction> transactions = transactionService.getTransactions();
+        final List<ChartValue> values = new ArrayList<>();
+        if(chartType == ChartType.HBAR) {
+            transactions.stream()
+                    .sorted(Comparator.comparing(Transaction::timestamp))
+                    .map(t -> {
+                        final String xValue = formatTimestamp(t.timestamp());
+                        final String yValue = t.balanceAfterTransaction().toString();
+                        return new ChartValue(xValue, yValue);
+                    })
+                    .forEach(values::add);
+            final Instant now = Instant.now();
+            final String xValue = formatTimestamp(now);
+            final String yValue = transactions.get(transactions.size() - 1).balanceAfterTransaction().toString();
+            values.add(new ChartValue(xValue, yValue));
+        } else if(chartType == ChartType.EUR) {
+            transactions.stream()
+                    .sorted(Comparator.comparing(Transaction::timestamp))
+                    .map(t -> {
+                        final BigDecimal exchangeRate = getExchangeRate(t);
+                        final String xValue = formatTimestamp(t.timestamp());
+                        final String yValue = t.balanceAfterTransaction().multiply(exchangeRate).toString();
+                        return new ChartValue(xValue, yValue);
+                    })
+                    .forEach(values::add);
+            final Instant now = Instant.now();
+            final BigDecimal exchangeRate = getExchangeRate(now);
+            final String xValue = formatTimestamp(now);
+            final String yValue = transactions.get(transactions.size() - 1).balanceAfterTransaction().multiply(exchangeRate).toString();
+            values.add(new ChartValue(xValue, yValue));
+        } else if(chartType == ChartType.STACKING_HBAR) {
+            final AtomicReference<BigDecimal> cumulativeStakingReward = new AtomicReference<>(new BigDecimal(0));
+            transactions.stream()
+                    .filter(t -> t.isStakingReward())
+                    .sorted(Comparator.comparing(Transaction::timestamp))
+                    .forEach(t -> {
+                        final String xValue = formatTimestamp(t.timestamp());
+                        cumulativeStakingReward.set(cumulativeStakingReward.get().add(t.amount()));
+                        final String yValue = cumulativeStakingReward.get().doubleValue() + "";
+                        values.add(new ChartValue(xValue, yValue));
+                    });
+        } else if(chartType == ChartType.STACKING_EUR) {
+            final AtomicReference<BigDecimal> cumulativeStakingReward = new AtomicReference<>(new BigDecimal(0));
+            transactions.stream()
+                    .filter(t -> t.isStakingReward())
+                    .sorted(Comparator.comparing(Transaction::timestamp))
+                    .forEach(t -> {
+                        final BigDecimal exchangeRate = getExchangeRate(t);
+                        final String xValue = formatTimestamp(t.timestamp());
+                        cumulativeStakingReward.set(cumulativeStakingReward.get().add(t.amount()));
+                        final String yValue = cumulativeStakingReward.get().multiply(exchangeRate).doubleValue() + "";
+                        values.add(new ChartValue(xValue, yValue));
+                    });
+        } else if(chartType == ChartType.EXCHANGE_RATE) {
+            transactions.forEach(t -> {
+                final BigDecimal exchangeRate = getExchangeRate(t);
+                final String xValue = formatTimestamp(t.timestamp());
+                final String yValue = exchangeRate.doubleValue() + "";
+                values.add(new ChartValue(xValue, yValue));
+            });
+        }
+        return values;
+    }
+
+    private void addChartToModel(final Model model, final List<ChartValue> values) {
+        model.addAttribute("xValues", convertToChartValues(values, v -> v.xValue));
+        model.addAttribute("yValues", convertToChartValues(values, v -> v.yValue));
+    }
+
     private BigDecimal getExchangeRate(final Transaction transaction) {
+        return getExchangeRate(transaction.timestamp());
+    }
+
+    private BigDecimal getExchangeRate(final Instant timestamp) {
         try {
             return exchangeClient.getExchangeRate(new ExchangePair(Currency.HBAR, Currency.EUR),
-                    transaction.timestamp());
+                    timestamp);
         } catch (Exception e) {
             throw new RuntimeException("Can not get exchange rate", e);
         }
     }
 
-    @RequestMapping(value = "/chart", method = RequestMethod.GET)
-    public String hello(final Model model, @RequestParam(value = "type", required = false, defaultValue = "eur") String type) {
-        Objects.requireNonNull(model);
-        model.addAttribute("type", type);
-
-        final List<Value> values = new ArrayList<>();
-        if(type.equals("stakingEur") || type.equals("stakingHbar")) {
-            AtomicReference<BigDecimal> stakingReward = new AtomicReference<>(BigDecimal.ZERO);
-            transactionService.getTransactions().stream()
-                    .filter(t -> t.isStakingReward())
-                    .forEach(t -> {
-                final String timestamp = formatTimestamp(t.timestamp());
-                final BigDecimal hbarAmount = t.hbarAmount();
-                stakingReward.set(stakingReward.get().add(hbarAmount));
-                final BigDecimal exchangeRate = getExchangeRate(t);
-                final double eurAmount = stakingReward.get().multiply(exchangeRate).doubleValue();
-                values.add(new Value(timestamp, stakingReward.get().doubleValue(), eurAmount, exchangeRate.doubleValue()));
-            });
-        } else {
-            transactionService.getTransactions().forEach(t -> {
-                final String timestamp = formatTimestamp(t.timestamp());
-                final double hbarAmount = t.hbarBalanceAfterTransaction().doubleValue();
-                final BigDecimal exchangeRate = getExchangeRate(t);
-                final double eurAmount = t.hbarBalanceAfterTransaction().multiply(exchangeRate).doubleValue();
-                values.add(new Value(timestamp, hbarAmount, eurAmount, exchangeRate.doubleValue()));
-            });
-        }
-        values.sort(Comparator.comparing(v -> v.timestamp));
-        JsonArray xValues = new JsonArray();
-        values.forEach(v -> xValues.add(v.timestamp));
-        model.addAttribute("xValues", xValues.toString().replaceAll("\"", ""));
-
-        final JsonArray hbarValues = new JsonArray();
-        values.forEach(v -> hbarValues.add(v.hbarAmount));
-        model.addAttribute("hbarValues", hbarValues.toString());
-
-        if(type.equals("exchange")) {
-            final JsonArray exchangeValues = new JsonArray();
-            values.forEach(v -> exchangeValues.add(v.exchangeRate));
-            model.addAttribute("eurValues", exchangeValues.toString());
-        } else {
-            final JsonArray eurValues = new JsonArray();
-            values.forEach(v -> eurValues.add(v.eurAmount));
-            model.addAttribute("eurValues", eurValues.toString());
-        }
-        return "chart";
+    private <T> String convertToChartValues(List<T> values, Function<T, Object> valueFunction) {
+        JsonArray jsonArray = new JsonArray();
+        values.forEach(v -> jsonArray.add(valueFunction.apply(v).toString()));
+        return jsonArray.toString();
     }
 
     private static String formatTimestamp(Instant timestamp) {
         //moment('2016-03-12 13:00:00')
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd hh:mm:ss")
                 .withZone(ZoneId.systemDefault());
-        return "'" + formatter.format(timestamp) + "'";
+        return formatter.format(timestamp);
     }
 
-    public record Value(String timestamp, double hbarAmount, double eurAmount, double exchangeRate){}
-
+    private record ChartValue(String xValue, String yValue) {}
 }
