@@ -30,7 +30,7 @@ public class HomeController {
     }
 
     @RequestMapping(value = "/", method = RequestMethod.GET)
-    public String hello(final Model model) throws Exception {
+    public String index(final Model model) throws Exception {
         Objects.requireNonNull(model);
         final List<Transaction> transactions = transactionService.getTransactions();
         final ExchangePair exchangePair = new ExchangePair(Currency.HBAR, Currency.EUR);
