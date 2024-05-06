@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -40,6 +41,21 @@ public class NoteService {
         Objects.requireNonNull(transaction, "transaction must not be null");
         final String hash = hash(transaction);
         return Optional.ofNullable(notes.getProperty(hash));
+    }
+
+    public void addExchangeRate(final Transaction transaction, final BigDecimal exchangeRate) {
+        Objects.requireNonNull(transaction, "transaction must not be null");
+        Objects.requireNonNull(exchangeRate, "exchangeRate must not be null");
+        final String hash = hash(transaction);
+        notes.put(hash + "-exchangeRate", exchangeRate.toString());
+        save();
+    }
+
+    public Optional<BigDecimal> getExchangeRate(final Transaction transaction) {
+        Objects.requireNonNull(transaction, "transaction must not be null");
+        final String hash = hash(transaction);
+        final String exchangeRate = notes.getProperty(hash + "-exchangeRate");
+        return Optional.ofNullable(exchangeRate).map(BigDecimal::new);
     }
 
     private String hash(final Transaction transaction) {
