@@ -4,6 +4,7 @@ import de.devlodge.hedera.account.export.exchange.coinbase.CoinBaseClient;
 import de.devlodge.hedera.account.export.exchange.ExchangeClient;
 import de.devlodge.hedera.account.export.ledgers.LedgerClient;
 import de.devlodge.hedera.account.export.ledgers.hedera.HederaClient;
+import de.devlodge.hedera.account.export.service.FileService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
@@ -15,8 +16,8 @@ public class Application {
     }
 
     @Bean
-    public ExchangeClient exchangeClient() {
-        return new CoinBaseClient();
+    public ExchangeClient exchangeClient(final FileService fileService) {
+        return new CoinBaseClient(fileService);
     }
 
 }

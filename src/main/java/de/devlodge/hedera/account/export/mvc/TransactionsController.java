@@ -108,6 +108,7 @@ public class TransactionsController {
                 MvcUtils.formatTransactionLink(transaction.networkId()),
                 MvcUtils.formatTimestamp(transaction.timestamp()),
                 MvcUtils.getHBarFormatted(transaction.amount()),
+                MvcUtils.getEurFormatted(exchangeRate, 4),
                 MvcUtils.getEurFormatted(eurAmount),
                 MvcUtils.getEurFormatted(newCumulativeCost),
                 note,
@@ -164,6 +165,6 @@ public class TransactionsController {
             return Collections.unmodifiableMap(fifoMap);
     }
 
-    public record TransactionModel(String id, String hederaTransactionId, String hederaTransactionLink, String timestamp, String hbarAmount, String eurAmount, String cumulativeCostInEur, String note, String hbarBalanceAfterTransaction, String eurBalanceAfterTransaction, String fifoInEur){}
+    public record TransactionModel(String id, String hederaTransactionId, String hederaTransactionLink, String timestamp, String hbarAmount, String exchangeRate, String eurAmount, String cumulativeCostInEur, String note, String hbarBalanceAfterTransaction, String eurBalanceAfterTransaction, String fifoInEur){}
 
 }

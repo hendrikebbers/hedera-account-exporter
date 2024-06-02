@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.LongStream;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -105,9 +106,16 @@ public class ChartController {
                         values.add(new ChartValue(xValue, yValue));
                     });
         } else if(chartType == ChartType.EXCHANGE_RATE) {
-            transactions.forEach(t -> {
-                final BigDecimal exchangeRate = getExchangeRate(t);
-                final String xValue = formatTimestamp(t.timestamp());
+            final Instant firstDay = transactions.stream().map(Transaction::timestamp)
+                    .sorted(Comparator.naturalOrder()).findFirst()
+                    .orElse(Instant.now()).truncatedTo(java.time.temporal.ChronoUnit.DAYS);
+            final Instant lastDay = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.DAYS);
+
+            long days = firstDay.until(lastDay, java.time.temporal.ChronoUnit.DAYS);
+            LongStream.range(0, days).forEach(d -> {
+                final Instant timestamp = firstDay.plus(d, java.time.temporal.ChronoUnit.DAYS);
+                final BigDecimal exchangeRate = getExchangeRate(timestamp);
+                final String xValue = formatTimestamp(timestamp);
                 final String yValue = exchangeRate.doubleValue() + "";
                 values.add(new ChartValue(xValue, yValue));
             });

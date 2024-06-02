@@ -23,9 +23,8 @@ public class NoteService {
 
     private final Properties notes;
 
-    public NoteService() {
-        String noteFile = System.getProperty("user.home") + File.separator + ".crypto-export" + File.separator + "notes.properties";
-        this.path = Path.of(noteFile);
+    public NoteService(final FileService fileService) {
+        this.path = fileService.getPathForFile("notes.properties");
         this.notes = new Properties();
         load();
     }
