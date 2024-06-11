@@ -20,10 +20,14 @@ public class MvcUtils {
     }
 
     public static String getEurFormatted(BigDecimal eurAmount) {
+        return getEurFormatted(eurAmount, 2);
+    }
+
+    public static String getEurFormatted(BigDecimal eurAmount, int fractionDigits) {
         Objects.requireNonNull(eurAmount, "eurAmount must not be null");
         DecimalFormat df = new DecimalFormat();
-        df.setMaximumFractionDigits(2);
-        df.setMinimumFractionDigits(2);
+        df.setMaximumFractionDigits(fractionDigits);
+        df.setMinimumFractionDigits(fractionDigits);
         df.setGroupingUsed(true);
         return df.format(eurAmount) + " €";
     }
