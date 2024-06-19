@@ -72,9 +72,9 @@ public class TransactionTaxController {
 
         private BigDecimal openFifoInHBAR;
 
-        private final List<Integer> usedFifoFor = new ArrayList<>();
+        private final List<FifoUsage> usedFifoFor = new ArrayList<>();
 
-        private final List<Integer> usedFifoBy = new ArrayList<>();
+        private final List<FifoUsage> usedFifoBy = new ArrayList<>();
 
         private final String note;
 
@@ -108,8 +108,10 @@ public class TransactionTaxController {
                         final BigDecimal fifo = preTransactionWithFifo.openFifoInHBAR.min(remainingAmount);
                         preTransactionWithFifo.openFifoInHBAR = preTransactionWithFifo.openFifoInHBAR.subtract(fifo);
                         remainingAmount = remainingAmount.subtract(fifo);
-                        usedFifoBy.add(preTransactionWithFifo.index);
-                        preTransactionWithFifo.usedFifoFor.add(index);
+                        final BigDecimal fifoInEur = fifo.multiply(preTransactionWithFifo.exchangeRate)
+                                .setScale(2, RoundingMode.HALF_UP);
+                        usedFifoBy.add(new FifoUsage(preTransactionWithFifo.index, fifo, fifoInEur));
+                        preTransactionWithFifo.usedFifoFor.add(new FifoUsage(index, fifo.negate(), fifoInEur.negate()));
                     }
                 }
                 if (!isZero(remainingAmount)) {
@@ -124,9 +126,13 @@ public class TransactionTaxController {
         }
 
         public TransactionTaxModel toTransactionTaxModel() {
-            final String usedFifoByString = usedFifoBy.stream().map(i -> i.toString()).reduce((a, b) -> a + ", " + b)
+            final String usedFifoByString = usedFifoBy.stream()
+                    .map(i -> i.index + " (" + MvcUtils.getEurFormatted(i.amountInEur) + ")")
+                    .reduce((a, b) -> a + System.lineSeparator() + b)
                     .orElseGet(() -> "");
-            final String usedFifoForString = usedFifoFor.stream().map(i -> i.toString()).reduce((a, b) -> a + ", " + b)
+            final String usedFifoForString = usedFifoFor.stream()
+                    .map(i -> i.index + " (" + MvcUtils.getEurFormatted(i.amountInEur) + ")")
+                    .reduce((a, b) -> a + System.lineSeparator() + b)
                     .orElseGet(() -> "");
 
             final String usedFifoString;
@@ -135,7 +141,7 @@ public class TransactionTaxController {
             } else if (usedFifoForString.isEmpty()) {
                 usedFifoString = usedFifoByString;
             } else {
-                usedFifoString = usedFifoByString + ", " + usedFifoForString;
+                usedFifoString = usedFifoByString + System.lineSeparator() + usedFifoForString;
             }
 
             return new TransactionTaxModel(index,
@@ -187,6 +193,9 @@ public class TransactionTaxController {
                                       String fifoInEur,
                                       String exchangeRate,
                                       String fifoUsage) {
+    }
+
+    public record FifoUsage(int index, BigDecimal amountInHBAR, BigDecimal amountInEur) {
     }
 
 }

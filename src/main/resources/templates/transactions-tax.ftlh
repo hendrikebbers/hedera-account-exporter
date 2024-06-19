@@ -28,7 +28,9 @@
             <td>${transaction.exchangeRate()}</td>
             <td class="text-right">${transaction.eurAmount()}</td>
             <td class="text-right">${transaction.fifoInEur()}</td>
-            <td class="text-right">${transaction.fifoUsage()}</td>
+            <td>
+              <div style="white-space:pre;">${transaction.fifoUsage()}</div>
+            </td>
             <td class="text-right">${transaction.cumulativeCostInEur()}</td>
             <td>${transaction.note()}</td>
             <td class="text-right">${transaction.hbarBalanceAfterTransaction()}</td>
