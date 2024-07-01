@@ -13,6 +13,7 @@
         <input type="text" class="form-control" id="hederaTransactionId" name="hederaTransactionId" value="${transaction.hederaTransactionId()}" readonly />
         <label for="note">Note</label>
         <input type="text" class="form-control" id="note" name="note" value="${transaction.note()}"  />
+        <input type="text" class="form-control" id="exchangeRate" name="exchangeRate" value="${transaction.exchangeRate()}"  />
       </div>
       <input type="submit" value="Save" />
     </form>
