@@ -89,14 +89,9 @@ public class TransactionTaxController {
             final BigDecimal prevCumulativeCostInEur = preTransactionsWithFifo.stream()
                     .map(t -> t.transaction.amount().multiply(t.exchangeRate))
                     .map(d -> d.setScale(2, RoundingMode.HALF_UP))
-                    .filter(d -> isPositive(d))
                     .reduce(BigDecimal.ZERO, (a, b) -> a.add(b));
-            if (isPositive(costInEur)) {
-                this.cumulativeCostInEur = prevCumulativeCostInEur.setScale(2, RoundingMode.HALF_UP)
-                        .add(costInEur).setScale(2, RoundingMode.HALF_UP);
-            } else {
-                this.cumulativeCostInEur = prevCumulativeCostInEur.setScale(2, RoundingMode.HALF_UP);
-            }
+            this.cumulativeCostInEur = prevCumulativeCostInEur.setScale(2, RoundingMode.HALF_UP)
+                    .add(costInEur).setScale(2, RoundingMode.HALF_UP);
 
             if (isPositive(transaction.amount())) {
                 openFifoInHBAR = transaction.amount();
