@@ -12,7 +12,7 @@
         <label for="accountId">AccountId</label>
         <input type="text" class="form-control" id="accountId" name="accountId" value="${accountId!""}"/>
       </div>
-      <input type="submit" value="Save"/>
+      <input type="submit" value="Set Account"/>
     </form>
   </section>
 </main>

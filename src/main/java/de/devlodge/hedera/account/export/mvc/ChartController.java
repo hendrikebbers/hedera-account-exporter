@@ -9,6 +9,7 @@ import de.devlodge.hedera.account.export.session.SessionStore;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -77,9 +78,9 @@ public class ChartController {
                         return new ChartValue(xValue, yValue);
                     })
                     .forEach(values::add);
-            final Instant now = Instant.now();
-            final BigDecimal exchangeRate = getExchangeRate(now);
-            final String xValue = formatTimestamp(now);
+            final ZonedDateTime today = ZonedDateTime.now();
+            final BigDecimal exchangeRate = getExchangeRate(today.toInstant());
+            final String xValue = formatTimestamp(today.toInstant());
             final String yValue = transactions.get(transactions.size() - 1).balanceAfterTransaction()
                     .multiply(exchangeRate).toString();
             values.add(new ChartValue(xValue, yValue));

@@ -17,6 +17,8 @@ import java.time.ZoneId;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Properties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.annotation.ApplicationScope;
 
@@ -24,9 +26,11 @@ import org.springframework.web.context.annotation.ApplicationScope;
 @ApplicationScope
 public class StorageServiceImpl implements StorageService {
 
+    private final static Logger log = LoggerFactory.getLogger(StorageServiceImpl.class);
+
     private final Path path;
 
-    private final Properties notes;
+    private final Properties internalStore;
 
     private final static ZoneId ZONE_ID = ZoneId.systemDefault();
 
@@ -34,20 +38,20 @@ public class StorageServiceImpl implements StorageService {
         String noteFile = System.getProperty("user.home") + File.separator + ".crypto-export" + File.separator
                 + "notes.properties";
         this.path = Path.of(noteFile);
-        this.notes = new Properties();
+        this.internalStore = new Properties();
         load();
     }
 
     public void addNote(final Transaction transaction, final String note) {
         final String hash = hash(transaction);
-        notes.put(hash, note);
+        internalStore.put(hash, note);
         save();
     }
 
     public Optional<String> getNote(final Transaction transaction) {
         Objects.requireNonNull(transaction, "transaction must not be null");
         final String hash = hash(transaction);
-        return Optional.ofNullable(notes.getProperty(hash));
+        return Optional.ofNullable(internalStore.getProperty(hash));
     }
 
     @Override
@@ -56,7 +60,8 @@ public class StorageServiceImpl implements StorageService {
         Objects.requireNonNull(date, "date must not be null");
         Objects.requireNonNull(rate, "rate must not be null");
         final String hash = hash(pair, date);
-        notes.put(hash + "-exchangeRate", rate.toString());
+        internalStore.put(hash + "-exchangeRate", rate.toString());
+        log.info("Exchange rate added to store");
         save();
     }
 
@@ -65,7 +70,7 @@ public class StorageServiceImpl implements StorageService {
         Objects.requireNonNull(pair, "pair must not be null");
         Objects.requireNonNull(date, "date must not be null");
         final String hash = hash(pair, date);
-        final String rate = notes.getProperty(hash + "-exchangeRate");
+        final String rate = internalStore.getProperty(hash + "-exchangeRate");
         return Optional.ofNullable(rate).map(BigDecimal::new);
     }
 
@@ -99,11 +104,12 @@ public class StorageServiceImpl implements StorageService {
         if (Files.exists(path)) {
             try (final InputStream inputStream = Files.newInputStream(path, java.nio.file.StandardOpenOption.CREATE,
                     StandardOpenOption.READ)) {
-                notes.load(inputStream);
+                internalStore.load(inputStream);
             } catch (Exception e) {
                 throw new RuntimeException("Could not load notes", e);
             }
         }
+        log.info("{} key-value pairs loaded for storage", internalStore.size());
     }
 
     private void save() {
@@ -117,7 +123,8 @@ public class StorageServiceImpl implements StorageService {
 
         try (final OutputStream outputStream = Files.newOutputStream(path, java.nio.file.StandardOpenOption.CREATE,
                 StandardOpenOption.WRITE, java.nio.file.StandardOpenOption.TRUNCATE_EXISTING)) {
-            notes.store(outputStream, comment);
+            internalStore.store(outputStream, comment);
+            log.info("{} key-value pairs stored from storage", internalStore.size());
         } catch (Exception e) {
             throw new RuntimeException("Could not save notes", e);
         }

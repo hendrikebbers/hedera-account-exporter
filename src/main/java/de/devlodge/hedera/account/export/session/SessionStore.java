@@ -9,6 +9,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CopyOnWriteArrayList;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.annotation.SessionScope;
@@ -16,6 +18,8 @@ import org.springframework.web.context.annotation.SessionScope;
 @Service
 @SessionScope
 public class SessionStore {
+
+    private final static Logger log = LoggerFactory.getLogger(SessionStore.class);
 
     private final List<Transaction> transactions = new CopyOnWriteArrayList<>();
 
@@ -43,6 +47,7 @@ public class SessionStore {
             try {
                 hederaTransactionFactory.getAllTransactionsForAccount(accountId)
                         .forEach(transaction -> transactions.add(transaction));
+                log.info("{} transactions loaded for session", transactions.size());
             } catch (final Exception e) {
                 this.accountId = null;
                 throw new RuntimeException("Can not get transactions for account", e);

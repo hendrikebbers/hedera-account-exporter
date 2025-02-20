@@ -6,7 +6,6 @@ import de.devlodge.hedera.account.export.model.Currency;
 import de.devlodge.hedera.account.export.model.Transaction;
 import de.devlodge.hedera.account.export.session.SessionStore;
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,7 +63,7 @@ public class HomeController {
         }
         final List<Transaction> transactions = transactionService.getTransactions();
         final ExchangePair exchangePair = new ExchangePair(Currency.HBAR, Currency.EUR);
-        final BigDecimal exchangeRate = exchangeClient.getExchangeRate(exchangePair, Instant.now());
+        final BigDecimal exchangeRate = exchangeClient.getCurrentExchangeRate(exchangePair);
         model.addAttribute("exchangeRate", MvcUtils.getEurFormatted(exchangeRate));
 
         if (!transactions.isEmpty()) {
