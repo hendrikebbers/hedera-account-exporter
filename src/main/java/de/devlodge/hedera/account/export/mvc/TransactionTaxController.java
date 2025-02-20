@@ -4,8 +4,8 @@ import de.devlodge.hedera.account.export.exchange.ExchangeClient;
 import de.devlodge.hedera.account.export.exchange.ExchangePair;
 import de.devlodge.hedera.account.export.model.Currency;
 import de.devlodge.hedera.account.export.model.Transaction;
-import de.devlodge.hedera.account.export.service.NoteService;
-import de.devlodge.hedera.account.export.service.TransactionService;
+import de.devlodge.hedera.account.export.session.SessionStore;
+import de.devlodge.hedera.account.export.storage.StorageService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
@@ -22,14 +22,14 @@ import org.springframework.web.bind.annotation.RequestMethod;
 @Controller
 public class TransactionTaxController {
 
-    private final TransactionService transactionService;
+    private final SessionStore transactionService;
 
-    private final NoteService noteService;
+    private final StorageService noteService;
 
     private final ExchangeClient exchangeClient;
 
     @Autowired
-    public TransactionTaxController(final TransactionService transactionService, final NoteService noteService,
+    public TransactionTaxController(final SessionStore transactionService, final StorageService noteService,
             ExchangeClient exchangeClient) {
         this.transactionService = Objects.requireNonNull(transactionService);
         this.noteService = Objects.requireNonNull(noteService);
