@@ -9,6 +9,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 @Controller
 public class HomeController {
+
+    private final static Logger log = LoggerFactory.getLogger(HomeController.class);
 
     private final SessionStore transactionService;
 
@@ -40,9 +44,11 @@ public class HomeController {
         final String accountIdToStore = Optional.ofNullable(accountId)
                 .filter(id -> !id.isBlank())
                 .orElse(null);
+        log.info("Logging in account id: {}", accountIdToStore);
         try {
             transactionService.setAccountId(accountIdToStore);
         } catch (Exception e) {
+            log.error("Error setting account id", e);
             return "index";
         }
         return "redirect:/home";
@@ -59,7 +65,7 @@ public class HomeController {
     public String home(final Model model) throws Exception {
         Objects.requireNonNull(model);
         if (!transactionService.accountId().isPresent()) {
-            return "redirect:/index";
+            return "redirect:/";
         }
         final List<Transaction> transactions = transactionService.getTransactions();
         final ExchangePair exchangePair = new ExchangePair(Currency.HBAR, Currency.EUR);
