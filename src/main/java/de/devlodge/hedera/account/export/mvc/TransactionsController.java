@@ -75,9 +75,10 @@ public class TransactionsController {
         final String note = noteService.getNote(transaction).orElseGet(() -> {
             if (transaction.isStakingReward()) {
                 return "Staking Reward";
-            } else {
-                return "";
+            } else if (transaction.amount().doubleValue() < 0.005d) {
+                return "SCAM";
             }
+            return "";
         });
 
         return new TransactionModel(
