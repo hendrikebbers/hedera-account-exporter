@@ -49,6 +49,17 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>repackage</id>
+            <goals>
+              <goal>repackage</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <mainClass>de.devlodge.hedera.account.export.Application</mainClass>
+        </configuration>
       </plugin>
     </plugins>
   </build>

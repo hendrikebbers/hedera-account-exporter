@@ -5,5 +5,5 @@ import java.util.List;
 
 public interface LedgerClient {
 
-    public List<Transaction> getAllTransactionsForAccount(final String accountId) throws Exception;
+    List<Transaction> getAllTransactionsForAccount(final String accountId) throws Exception;
 }
