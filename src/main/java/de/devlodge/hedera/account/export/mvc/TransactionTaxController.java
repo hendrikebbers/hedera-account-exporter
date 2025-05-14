@@ -4,13 +4,15 @@ import de.devlodge.hedera.account.export.exchange.ExchangeClient;
 import de.devlodge.hedera.account.export.exchange.ExchangePair;
 import de.devlodge.hedera.account.export.model.Currency;
 import de.devlodge.hedera.account.export.model.Transaction;
-import de.devlodge.hedera.account.export.service.NoteService;
-import de.devlodge.hedera.account.export.service.TransactionService;
+import de.devlodge.hedera.account.export.session.SessionStore;
+import de.devlodge.hedera.account.export.storage.StorageService;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicReference;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -20,14 +22,14 @@ import org.springframework.web.bind.annotation.RequestMethod;
 @Controller
 public class TransactionTaxController {
 
-    private final TransactionService transactionService;
+    private final SessionStore transactionService;
 
-    private final NoteService noteService;
+    private final StorageService noteService;
 
     private final ExchangeClient exchangeClient;
 
     @Autowired
-    public TransactionTaxController(final TransactionService transactionService, final NoteService noteService,
+    public TransactionTaxController(final SessionStore transactionService, final StorageService noteService,
             ExchangeClient exchangeClient) {
         this.transactionService = Objects.requireNonNull(transactionService);
         this.noteService = Objects.requireNonNull(noteService);
@@ -40,7 +42,8 @@ public class TransactionTaxController {
 
         final List<TransactionWithFifo> transactionsWithFifo = new ArrayList<>();
         final List<Transaction> transactions = transactionService.getTransactions();
-        transactions.forEach(t -> {
+        AtomicReference<BigDecimal> cumulativeCostInEur = new AtomicReference<>(BigDecimal.ZERO);
+        transactions.stream().sorted(Comparator.comparing(Transaction::timestamp)).forEach(t -> {
             final BigDecimal exchangeRate = getExchangeRate(t);
             final List<TransactionWithFifo> preTransactionsWithFifo = new ArrayList<>(transactionsWithFifo);
             final String note = noteService.getNote(t).orElseGet(() -> {
@@ -52,7 +55,8 @@ public class TransactionTaxController {
             });
             final TransactionWithFifo transactionWithFifo = new TransactionWithFifo(transactions.indexOf(t), t,
                     exchangeRate,
-                    preTransactionsWithFifo, note);
+                    preTransactionsWithFifo, cumulativeCostInEur.get(), note);
+            cumulativeCostInEur.set(transactionWithFifo.cumulativeCostInEur);
             transactionsWithFifo.add(transactionWithFifo);
         });
         model.addAttribute("transactions", transactionsWithFifo.stream().map(TransactionWithFifo::toTransactionTaxModel)
@@ -72,6 +76,8 @@ public class TransactionTaxController {
 
         private BigDecimal openFifoInHBAR;
 
+        private final BigDecimal euroAmount;
+
         private final List<FifoUsage> usedFifoFor = new ArrayList<>();
 
         private final List<FifoUsage> usedFifoBy = new ArrayList<>();
@@ -79,25 +85,11 @@ public class TransactionTaxController {
         private final String note;
 
         public TransactionWithFifo(int index, Transaction transaction, final BigDecimal exchangeRate,
-                List<TransactionWithFifo> preTransactionsWithFifo, String note) {
+                List<TransactionWithFifo> preTransactionsWithFifo, BigDecimal prevCumulativeCostInEur, String note) {
             this.index = index;
             this.transaction = transaction;
             this.exchangeRate = exchangeRate;
             this.note = note;
-            final BigDecimal costInEur = transaction.amount().multiply(exchangeRate)
-                    .setScale(2, RoundingMode.HALF_UP);
-            final BigDecimal prevCumulativeCostInEur = preTransactionsWithFifo.stream()
-                    .map(t -> t.transaction.amount().multiply(t.exchangeRate))
-                    .map(d -> d.setScale(2, RoundingMode.HALF_UP))
-                    .filter(d -> isPositive(d))
-                    .reduce(BigDecimal.ZERO, (a, b) -> a.add(b));
-            if (isPositive(costInEur)) {
-                this.cumulativeCostInEur = prevCumulativeCostInEur.setScale(2, RoundingMode.HALF_UP)
-                        .add(costInEur).setScale(2, RoundingMode.HALF_UP);
-            } else {
-                this.cumulativeCostInEur = prevCumulativeCostInEur.setScale(2, RoundingMode.HALF_UP);
-            }
-
             if (isPositive(transaction.amount())) {
                 openFifoInHBAR = transaction.amount();
             } else {
@@ -124,6 +116,16 @@ public class TransactionTaxController {
                             + " for transaction " + transaction.id() + " with amount " + transaction.amount());
                 }
             }
+
+            if (isNegative(transaction.amount())) {
+                euroAmount = usedFifoBy.stream().map(i -> i.amountInEur)
+                        .map(a -> a.setScale(2, RoundingMode.HALF_UP))
+                        .reduce(BigDecimal.ZERO, (a, b) -> a.add(b)).negate();
+            } else {
+                euroAmount = transaction.amount().multiply(exchangeRate).setScale(2, RoundingMode.HALF_UP);
+            }
+            this.cumulativeCostInEur = prevCumulativeCostInEur.setScale(2, RoundingMode.HALF_UP)
+                    .add(euroAmount).setScale(2, RoundingMode.HALF_UP);
         }
 
 
@@ -146,18 +148,32 @@ public class TransactionTaxController {
             } else {
                 usedFifoString = usedFifoByString + System.lineSeparator() + usedFifoForString;
             }
+
+            final String exchnageRateAsString;
+            if (isNegative(transaction.amount())) {
+                exchnageRateAsString = "-";
+            } else {
+                exchnageRateAsString = MvcUtils.getEurFormatted(
+                        transaction.amount().multiply(exchangeRate).setScale(2, RoundingMode.HALF_UP));
+            }
+            final String openFifoInEur;
+            if (isNegative(transaction.amount())) {
+                openFifoInEur = "-";
+            } else {
+                openFifoInEur = MvcUtils.getEurFormatted(
+                        openFifoInHBAR.multiply(exchangeRate).setScale(2, RoundingMode.HALF_UP));
+            }
             return new TransactionTaxModel(index,
                     transaction.id().toString(),
                     transaction.networkId(),
                     MvcUtils.formatTimestamp(transaction.timestamp()),
                     MvcUtils.getHBarFormatted(transaction.amount()),
-                    MvcUtils.getEurFormatted(
-                            transaction.amount().multiply(exchangeRate).setScale(2, RoundingMode.HALF_UP)),
+                    MvcUtils.getEurFormatted(euroAmount),
                     MvcUtils.getEurFormatted(cumulativeCostInEur),
                     note,
                     MvcUtils.getHBarFormatted(transaction.balanceAfterTransaction()),
-                    MvcUtils.getEurFormatted(openFifoInHBAR.multiply(exchangeRate).setScale(2, RoundingMode.HALF_UP)),
-                    MvcUtils.getEurFormatted(exchangeRate, 6),
+                    openFifoInEur,
+                    exchnageRateAsString,
                     usedFifoString);
         }
     }
